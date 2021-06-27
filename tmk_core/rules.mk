@@ -1,6 +1,6 @@
 # Hey Emacs, this is a -*- makefile -*-
 #----------------------------------------------------------------------------
-# WinAVR Makefile Template written by Eric B. Weddington, Jû®šg Wunsch, et al.
+# WinAVR Makefile Template written by Eric B. Weddington, JÃ»Â®Âšg Wunsch, et al.
 #
 # Released to the Public Domain
 #
@@ -53,7 +53,7 @@ OPT ?= s
 #     gnu89 = c89 plus GCC extensions
 #     c99   = ISO C99 standard (not yet fully implemented)
 #     gnu99 = c99 plus GCC extensions
-CSTANDARD = -std=gnu99
+CSTANDARD = -std=gnu11
 
 
 # Place -D or -U options here for C sources
