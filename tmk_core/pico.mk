@@ -58,7 +58,6 @@ CFLAGS += -DPICO_TARGET_NAME=\"$(TARGET)\"
 CFLAGS += -DPICO_USE_BLOCKED_RAM=0
 CFLAGS += -I$(PICO_SDK_PATH)
 CFLAGS += -I$(PICO_SDK_PATH)/src
-CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/examples/device/cdc_msc/src
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_stdlib/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_gpio/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_base/include
@@ -98,6 +97,8 @@ CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_stdio_uart/include
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/common
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/hw
+CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/class/hid
+CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/class/cdc
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/include
 CFLAGS += -mcpu=cortex-m0plus
 CFLAGS += -mthumb
