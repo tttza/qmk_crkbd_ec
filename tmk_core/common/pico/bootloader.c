@@ -1,5 +1,6 @@
 
 #include "pico/stdlib.h"
+#include "pico/bootrom.h"
 
 #define FLASH_SIZE (FLASHEND + 1L)
 

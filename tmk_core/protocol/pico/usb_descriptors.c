@@ -77,17 +77,6 @@ uint8_t const* tud_descriptor_device_cb(void) {
 // Configuration Descriptor
 //--------------------------------------------------------------------+
 
-enum {
-    ITF_NUM_HID_KEYBOARD,
-    ITF_NUM_HID_MOUSE,
-    ITF_NUM_HID_EXTRA,
-    ITF_NUM_HID_RAW,
-    ITF_NUM_HID_CONSOLE,
-    ITF_NUM_CDC,
-    ITF_NUM_CDC_DATA,
-    ITF_NUM_TOTAL
-};
-
 #define CONFIG_TOTAL_LEN                                             \
     (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN * 4 + \
      TUD_HID_INOUT_DESC_LEN)

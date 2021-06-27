@@ -29,6 +29,7 @@
 
 #include "bsp/board.h"
 #include "tusb.h"
+#include "qmk_main.h"
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
@@ -56,12 +57,16 @@ int main(void)
   board_init();
   tusb_init();
 
+  qmk_init();
+
   while (1)
   {
     tud_task(); // tinyusb device task
     led_blinking_task();
 
     cdc_task();
+
+    qmk_task();
   }
 
   return 0;

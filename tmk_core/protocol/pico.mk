@@ -9,7 +9,8 @@ LDSCRIPT := $(PICO_SDK_PATH)/src/rp2_common/pico_standard_link/memmap_default.ld
 
 SRC += $(PROTOCOL_DIR)/main.c
 SRC += $(PROTOCOL_DIR)/usb_descriptors.c
-SRC += $(PROTOCOL_DIR)/msc_disk.c
+SRC += $(PROTOCOL_DIR)/qmk_main.c
+SRC += $(PROTOCOL_DIR)/iusb.c
 
 CFLAGS += -DPROTOCOL_PICO
 
