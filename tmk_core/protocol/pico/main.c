@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "pico/stdio/driver.h"
 #include "bsp/board.h"
 #include "tusb.h"
 #include "qmk_main.h"
@@ -51,11 +52,20 @@ static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 void led_blinking_task(void);
 void cdc_task(void);
 
+static int cdc_in_chars(char* buf, int len) { return 0; }
+
+static stdio_driver_t stdio_driver = {.out_chars = tud_cdc_write,
+                                      .out_flush = tud_cdc_write_flush,
+                                      .in_chars  = cdc_in_chars,
+                                      .next      = NULL};
+
 /*------------- MAIN -------------*/
 int main(void)
 {
   board_init();
   tusb_init();
+
+  stdio_set_driver_enabled(&stdio_driver, true);
 
   qmk_init();
 
@@ -63,8 +73,6 @@ int main(void)
   {
     tud_task(); // tinyusb device task
     led_blinking_task();
-
-    cdc_task();
 
     qmk_task();
   }

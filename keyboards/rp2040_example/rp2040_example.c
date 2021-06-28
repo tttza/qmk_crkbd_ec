@@ -15,3 +15,5 @@
  */
 
 #include "rp2040_example.h"
+
+void keyboard_post_init_kb(void) { debug_enable = true; }

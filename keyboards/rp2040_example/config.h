@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MATRIX_COLS 3
 
 #define GPIO_INPUT_PIN_DELAY 100
+#define DEBUG_MATRIX_SCAN_RATE
 
 /*
  * Keyboard Matrix Assignments
