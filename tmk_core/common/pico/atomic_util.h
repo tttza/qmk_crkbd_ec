@@ -15,11 +15,17 @@
  */
 #pragma once
 
+#include "hardware/sync.h"
+
+static uint32_t interrupts;
+
 static __inline__ uint8_t __interrupt_disable__(void) {
+    interrupts = save_and_disable_interrupts();
     return 1;
 }
 
 static __inline__ void __interrupt_enable__(const uint8_t *__s) {
+    restore_interrupts(interrupts);
 }
 
 #define ATOMIC_BLOCK(type) for (type, __ToDo = __interrupt_disable__(); __ToDo; __ToDo = 0)
