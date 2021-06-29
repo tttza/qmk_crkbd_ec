@@ -281,6 +281,7 @@ LDFLAGS += -Wl,--wrap=putchar
 LDFLAGS += -Wl,--wrap=getchar
 
 PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/pico_stdlib/stdlib.c
+PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_flash/flash.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_gpio/gpio.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_claim/claim.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/pico_platform/platform.c

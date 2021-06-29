@@ -125,7 +125,34 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts) {
 }
 
 // Invoked when CDC interface received data from host
-void tud_cdc_rx_cb(uint8_t itf) { (void)itf; }
+void tud_cdc_rx_cb(uint8_t itf) {
+    if (tud_cdc_available()) {
+        // read datas
+        char     buf[64];
+        uint32_t count = tud_cdc_read(buf, sizeof(buf));
+        (void)count;
+
+        // Echo back
+        // Note: Skip echo by commenting out write() and write_flush()
+        // for throughput test e.g
+        //    $ dd if=/dev/zero of=/dev/ttyACM0 count=10000
+        tud_cdc_write(buf, count);
+        tud_cdc_write_flush();
+
+        if (buf[0] == 's') {
+            printf("save keymap to eeprom\n");
+            pico_eepemu_flash_dynamic_keymap();
+            printf("complete\n");
+            printf("save eeconfig to eeprom\n");
+            pico_eepemu_flash_eeconfig();
+            printf("complete\n");
+        } else if (buf[0] == 'l') {
+            printf("init eeprom emulation\n");
+            pico_eepemu_init();
+            printf("complete\n");
+        }
+    }
+}
 
 // Invoked when sent REPORT successfully to host
 // Application can use this to send the next report

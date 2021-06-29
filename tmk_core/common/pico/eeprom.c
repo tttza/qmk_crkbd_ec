@@ -10,9 +10,6 @@
 #include "hardware/flash.h"
 #include "hardware/sync.h"
 
-// TODO implement
-//
-
 // TODO Define from Flash size
 #define EEPEMU_EECONFIG_START_OFFSET 0x40000  // First 256kB is program area
 #define EEPEMU_KEYMAP_START_OFFSET 0x41000
@@ -50,7 +47,7 @@ void pico_eepemu_flash_dynamic_keymap(void) {
     int32_t status = save_and_disable_interrupts();
 
     flash_range_erase(EEPEMU_KEYMAP_START_OFFSET, FLASH_SECTOR_SIZE);
-    flash_range_program(EEPEMU_EECONFIG_START_OFFSET, eepemu_dynamic_keymap,
+    flash_range_program(EEPEMU_KEYMAP_START_OFFSET, eepemu_dynamic_keymap,
                         sizeof(eepemu_dynamic_keymap));
 
     restore_interrupts(status);
