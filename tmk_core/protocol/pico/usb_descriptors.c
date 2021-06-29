@@ -130,25 +130,25 @@ uint8_t const desc_fs_configuration[] = {
 
     // Interface number, string index, protocol, report descriptor len, EP In
     // address, size & polling interval
-    TUD_HID_DESCRIPTOR(ITF_NUM_HID_KEYBOARD, 4, HID_ITF_PROTOCOL_NONE,
+    TUD_HID_DESCRIPTOR(ITF_NUM_HID_KEYBOARD, 2, HID_ITF_PROTOCOL_NONE,
                        sizeof(desc_keyboard), EPNUM_HID_KEYBOARD_IN,
                        CFG_TUD_HID_EP_BUFSIZE, 10),
-    TUD_HID_DESCRIPTOR(ITF_NUM_HID_MOUSE, 5, HID_ITF_PROTOCOL_NONE,
+    TUD_HID_DESCRIPTOR(ITF_NUM_HID_MOUSE, 2, HID_ITF_PROTOCOL_NONE,
                        sizeof(desc_mouse), EPNUM_HID_MOUSE_IN,
                        CFG_TUD_HID_EP_BUFSIZE, 1),
-    TUD_HID_DESCRIPTOR(ITF_NUM_HID_EXTRA, 6, HID_ITF_PROTOCOL_NONE,
+    TUD_HID_DESCRIPTOR(ITF_NUM_HID_EXTRA, 2, HID_ITF_PROTOCOL_NONE,
                        sizeof(desc_extra), EPNUM_HID_EXTRA_IN,
                        CFG_TUD_HID_EP_BUFSIZE, 10),
-    TUD_HID_INOUT_DESCRIPTOR(ITF_NUM_HID_RAW, 7, HID_ITF_PROTOCOL_NONE,
+    TUD_HID_INOUT_DESCRIPTOR(ITF_NUM_HID_RAW, 2, HID_ITF_PROTOCOL_NONE,
                              sizeof(desc_raw), EPNUM_HID_RAW_OUT,
                              EPNUM_HID_RAW_IN, CFG_TUD_HID_EP_BUFSIZE, 10),
-    TUD_HID_DESCRIPTOR(ITF_NUM_HID_CONSOLE, 8, HID_ITF_PROTOCOL_NONE,
+    TUD_HID_DESCRIPTOR(ITF_NUM_HID_CONSOLE, 2, HID_ITF_PROTOCOL_NONE,
                        sizeof(desc_console), EPNUM_HID_CONSOLE_IN,
                        CFG_TUD_HID_EP_BUFSIZE, 10),
 
     // Interface number, string index, EP notification address and size, EP data
     // address (out, in) and size.
-    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 9, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT,
+    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 2, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT,
                        EPNUM_CDC_IN, 64),
 
 };
@@ -172,12 +172,6 @@ char const* string_desc_arr[] = {
     STR(MANUFACTURER),          // 1: Manufacturer
     STR(PRODUCT),               // 2: Product
     "123456",                    // 3: Serials, should use chip ID
-    "TinyUSB Keyboard",
-    "TinyUSB Mouse",
-    "TinyUSB Extra",
-    "TinyUSB Raw",
-    "TinyUSB Console",
-    "TinyUSB CDC",
 };
 
 static uint16_t _desc_str[32];

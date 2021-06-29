@@ -3,6 +3,8 @@ MCU_FAMILY = PICO
 MCU_SERIES = RP2040
 MCU = cortex-m0plus
 
+VIA_ENABLE = yes
+
 # Build Options
 #   change yes to no to disable
 #

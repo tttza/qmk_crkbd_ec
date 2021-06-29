@@ -28,7 +28,6 @@
 #include "debug.h"
 #include "print.h"
 
-
 #ifdef SLEEP_LED_ENABLE
 #    include "sleep_led.h"
 #endif
@@ -53,15 +52,18 @@
 #include "iusb.h"
 
 /* host struct */
-host_driver_t driver = {keyboard_leds, send_keyboard, send_mouse, send_system, send_consumer};
+host_driver_t driver = {keyboard_leds, send_keyboard, send_mouse, send_system,
+                        send_consumer};
 
-void console_task()
-{
+static void console_task() {
     // TODO
 }
 
-void qmk_init()
-{
+static void raw_hid_task(void) {
+    // TODO
+}
+
+void qmk_init() {
     keyboard_setup();
 
     keyboard_init();

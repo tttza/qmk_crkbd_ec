@@ -59,6 +59,7 @@ CFLAGS += -DPICO_USE_BLOCKED_RAM=0
 CFLAGS += -I$(PICO_SDK_PATH)
 CFLAGS += -I$(PICO_SDK_PATH)/src
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_stdlib/include
+CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_flash/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_gpio/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_base/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/boards/include

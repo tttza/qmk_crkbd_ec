@@ -27,10 +27,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "qmk_main.h"
+#include "raw_hid.h"
+
+#include "pico_eeprom.h"
+#include "usb_descriptors.h"
+
 #include "pico/stdio/driver.h"
 #include "bsp/board.h"
 #include "tusb.h"
-#include "qmk_main.h"
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
@@ -74,6 +79,8 @@ int main(void) {
     tusb_init();
 
     stdio_set_driver_enabled(&stdio_driver, true);
+
+    pico_eepemu_init();
 
     qmk_init();
 
@@ -150,10 +157,11 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
 void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const* buffer,
                            uint16_t bufsize) {
-    // TODO set LED based on CAPLOCK, NUMLOCK etc...
-    (void)itf;
-    (void)report_id;
-    (void)report_type;
-    (void)buffer;
-    (void)bufsize;
+    switch (itf) {
+        case ITF_NUM_HID_RAW:
+            raw_hid_receive((uint8_t*)buffer, bufsize);
+            break;
+        default:
+            break;
+    }
 }
