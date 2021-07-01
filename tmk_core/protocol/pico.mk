@@ -11,6 +11,7 @@ SRC += $(PROTOCOL_DIR)/main.c
 SRC += $(PROTOCOL_DIR)/usb_descriptors.c
 SRC += $(PROTOCOL_DIR)/qmk_main.c
 SRC += $(PROTOCOL_DIR)/iusb.c
+SRC += $(PROTOCOL_DIR)/pio_manager.c
 
 CFLAGS += -DPROTOCOL_PICO
 
