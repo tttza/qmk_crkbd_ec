@@ -354,6 +354,9 @@ PROTOCOLSRC += $(PICO_SDK_PATH)/lib/tinyusb/src/tusb.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/lib/tinyusb/src/common/tusb_fifo.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c
 
+$(BUILD_DIR)/$(TARGET).elf::
+	$(ELFSIZE)
+
 flash: $(BUILD_DIR)/$(TRAGET).elf check-size cpfirmware
 	until lsusb | grep -q $(RP2BOOT_ID); do\
 		printf "$(MSG_BOOTLOADER_NOT_FOUND)" ;\
