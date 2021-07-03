@@ -179,12 +179,19 @@ uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id,
     return 0;
 }
 
+static uint8_t keyboard_indicator_led;
+uint8_t        get_keyboard_led_status(void) { return keyboard_indicator_led; }
+
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
 void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id,
                            hid_report_type_t report_type, uint8_t const* buffer,
                            uint16_t bufsize) {
     switch (itf) {
+        case ITF_NUM_HID_KEYBOARD:
+            // LED status
+            keyboard_indicator_led = buffer[0];
+            break;
         case ITF_NUM_HID_RAW:
             raw_hid_receive((uint8_t*)buffer, bufsize);
             break;

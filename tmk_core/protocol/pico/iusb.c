@@ -7,10 +7,8 @@
 #include "device/usbd.h"
 #include "hid_device.h"
 
-/* declarations */
 uint8_t keyboard_leds(void) {
-    // TODO
-    return 0;
+    return get_keyboard_led_status();
 }
 
 void send_keyboard(report_keyboard_t *report) {
@@ -58,7 +56,7 @@ void send_consumer(uint16_t data) {
     tud_task();
 }
 
-void raw_hid_send(uint8_t* data, uint8_t length) {
+void raw_hid_send(uint8_t *data, uint8_t length) {
     while (!tud_hid_n_ready(ITF_NUM_HID_RAW)) {
         tud_task();
         if (!tud_ready()) {
