@@ -10,6 +10,10 @@ EEP =
 BIN = $(OBJCOPY) -O binary
 
 ALLOW_WARNINGS := yes
+OPT_DEFS += -DPROTOCOL_PICO
+OPT_DEFS += -DSPLIT_USB_DETECT
+PICOTOOL ?= picotool
+RP2BOOT_ID ?= "2e8a:0003"
 
 CFLAGS += -DCFG_TUSB_DEBUG=0
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_RP2040
@@ -349,3 +353,11 @@ PROTOCOLSRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/vendor/vendor_device.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/lib/tinyusb/src/tusb.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/lib/tinyusb/src/common/tusb_fifo.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c
+
+flash: $(BUILD_DIR)/$(TRAGET).elf check-size cpfirmware
+	until lsusb | grep -q $(RP2BOOT_ID); do\
+		printf "$(MSG_BOOTLOADER_NOT_FOUND)" ;\
+		sleep 5 ;\
+	done
+	$(PICOTOOL) load $(BUILD_DIR)/$(TARGET).elf &&  $(PICOTOOL) reboot
+

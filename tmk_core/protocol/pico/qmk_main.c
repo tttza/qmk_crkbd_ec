@@ -55,7 +55,7 @@
 host_driver_t driver = {keyboard_leds, send_keyboard, send_mouse, send_system,
                         send_consumer};
 
-static void console_task() {
+static void console_task(void) {
     // TODO
 }
 
@@ -63,14 +63,14 @@ static void raw_hid_task(void) {
     // TODO
 }
 
-void qmk_init() {
+void qmk_init(void) {
     keyboard_setup();
 
     keyboard_init();
     host_set_driver(&driver);
 }
 
-void qmk_task() {
+void qmk_task(void) {
     keyboard_task();
 #ifdef CONSOLE_ENABLE
     console_task();

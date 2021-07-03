@@ -112,8 +112,8 @@ __attribute__((always_inline)) static inline void wait_cpuclock_allnop(unsigned 
 #   define wait_us(us)  //no implementation
 #elif defined PROTOCOL_PICO
 #include "pico/stdlib.h"
-#   define wait_ms(ms)  sleep_ms(ms)
-#   define wait_us(us)  sleep_us(us)
+#   define wait_ms(ms)  busy_wait_ms(ms)
+#   define wait_us(us)  busy_wait_us(us)
 #elif defined PROTOCOL_ARM_ATSAM
 #    include "clks.h"
 #    define wait_ms(ms) CLK_delay_ms(ms)

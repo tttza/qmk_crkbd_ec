@@ -23,6 +23,7 @@
  */
 #pragma once
 
+#include <stdio.h>
 #include "pico/stdlib.h"
 
 // Create user & normal print defines

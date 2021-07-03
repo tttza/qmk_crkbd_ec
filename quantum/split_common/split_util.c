@@ -15,6 +15,10 @@
 #    include <usbdrv/usbdrv.h>
 #endif
 
+#ifdef PROTOCOL_PICO
+#    include "tusb.h"
+#endif
+
 #ifdef EE_HANDS
 #    include "eeconfig.h"
 #endif
@@ -39,13 +43,17 @@ volatile bool isLeftHand = true;
 
 #if defined(SPLIT_USB_DETECT)
 #    if defined(PROTOCOL_LUFA)
-static inline bool usbHasActiveConnection(void) { return USB_Device_IsAddressSet(); }
+static inline bool usbHasActiveConnection(void) {
+    return USB_Device_IsAddressSet();
+}
 static inline void usbDisable(void) {
     USB_Disable();
     USB_DeviceState = DEVICE_STATE_Unattached;
 }
 #    elif defined(PROTOCOL_CHIBIOS)
-static inline bool usbHasActiveConnection(void) { return usbGetDriverStateI(&USBD1) == USB_ACTIVE; }
+static inline bool usbHasActiveConnection(void) {
+    return usbGetDriverStateI(&USBD1) == USB_ACTIVE;
+}
 static inline void usbDisable(void) { usbStop(&USBD1); }
 #    elif defined(PROTOCOL_VUSB)
 static inline bool usbHasActiveConnection(void) {
@@ -53,6 +61,14 @@ static inline bool usbHasActiveConnection(void) {
     return usbConfiguration;
 }
 static inline void usbDisable(void) { usbDeviceDisconnect(); }
+#    elif defined(PROTOCOL_PICO)
+static inline bool usbHasActiveConnection(void) {
+    tud_task();
+    return tud_connected();
+}
+static inline void usbDisable(void) {
+#        warning "No implementation" //TODO implement
+}
 #    else
 static inline bool usbHasActiveConnection(void) { return true; }
 static inline void usbDisable(void) {}
@@ -67,7 +83,8 @@ bool usbIsActive(void) {
         wait_ms(SPLIT_USB_TIMEOUT_POLL);
     }
 
-    // Avoid NO_USB_STARTUP_CHECK - Disable USB as the previous checks seem to enable it somehow
+    // Avoid NO_USB_STARTUP_CHECK - Disable USB as the previous checks seem to
+    // enable it somehow
     usbDisable();
 
     return false;
@@ -140,7 +157,8 @@ void split_pre_init(void) {
     if (isLeftHand) {
         rgblight_set_clipping_range(0, num_rgb_leds_split[0]);
     } else {
-        rgblight_set_clipping_range(num_rgb_leds_split[0], num_rgb_leds_split[1]);
+        rgblight_set_clipping_range(num_rgb_leds_split[0],
+                                    num_rgb_leds_split[1]);
     }
 #endif
 
