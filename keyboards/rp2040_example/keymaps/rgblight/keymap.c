@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include QMK_KEYBOARD_H
+#include "pico_eeprom.h"
 
 // Defines names for use in layer keycodes and the keymap
 enum layer_names {
@@ -57,6 +58,18 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 // when keycode QMKURL is released
             }
             break;
+
+        case KC_FN0:
+            if (record->event.pressed) {
+                printf("save keymap to eeprom\n");
+                pico_eepemu_flash_dynamic_keymap();
+                printf("complete\n");
+                printf("save eeconfig to eeprom\n");
+                pico_eepemu_flash_eeconfig();
+                printf("complete\n");
+            }
+            return false;
+            break;
     }
     return true;
 }
@@ -67,3 +80,4 @@ void keyboard_post_init_user(void) {
     rgblight_enable();
     rgblight_mode_noeeprom(35);
 }
+
