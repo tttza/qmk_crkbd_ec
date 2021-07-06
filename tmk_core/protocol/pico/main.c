@@ -124,6 +124,14 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts) {
     }
 }
 
+void tud_cdc_line_coding_cb(uint8_t                  itf,
+                            cdc_line_coding_t const* p_line_coding) {
+    (void)itf;
+    if (p_line_coding->bit_rate == 1200) {
+        bootloader_jump();
+    }
+}
+
 // Invoked when CDC interface received data from host
 void tud_cdc_rx_cb(uint8_t itf) {
     if (tud_cdc_available()) {
