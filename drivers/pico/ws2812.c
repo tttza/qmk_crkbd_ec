@@ -5,6 +5,7 @@
 #include "ws2812.pio.h"
 
 #include "pio_manager.h"
+#include "boards/pico_boards.h"
 
 #include "pico/stdlib.h"
 

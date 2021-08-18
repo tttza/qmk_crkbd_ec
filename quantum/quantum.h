@@ -24,6 +24,9 @@
 #    include <hal.h>
 #    include "chibios_config.h"
 #endif
+#if defined(PROTOCOL_PICO)
+#    include "boards/pico_boards.h"
+#endif
 
 #include "wait.h"
 #include "matrix.h"
