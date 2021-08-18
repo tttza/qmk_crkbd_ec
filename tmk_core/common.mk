@@ -144,9 +144,13 @@ ifeq ($(strip $(LTO_ENABLE)), yes)
         $(info Enabling LTO on ChibiOS-targeting boards is known to have a high likelihood of failure.)
         $(info If unsure, set LTO_ENABLE = no.)
     endif
-    EXTRAFLAGS += -flto
-    TMK_COMMON_DEFS += -DLTO_ENABLE
-    TMK_COMMON_DEFS += -DLINK_TIME_OPTIMIZATON_ENABLE
+    ifeq ($(PLATFORM),PICO_SDK)
+        $(info LTO is not available for this platform. Disabled automatically.)
+    else
+        EXTRAFLAGS += -flto
+        TMK_COMMON_DEFS += -DLTO_ENABLE
+        TMK_COMMON_DEFS += -DLINK_TIME_OPTIMIZATON_ENABLE
+    endif
 else ifdef LINK_TIME_OPTIMIZATION_ENABLE
     $(error The LINK_TIME_OPTIMIZATION_ENABLE flag has been renamed to LTO_ENABLE.)
 endif

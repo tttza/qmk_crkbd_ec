@@ -84,4 +84,6 @@ void i2c_stop(void) {
     while (I2C_DRIVER->hw->enable & (1 << 1)) {
         continue;
     }
+    // clear abort bit
+    I2C_DRIVER->hw->clr_tx_abrt;
 }
