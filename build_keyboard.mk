@@ -142,6 +142,15 @@ ifeq ($(strip $(CONVERT_TO_PROTON_C)), yes)
     include platforms/chibios/QMK_PROTON_C/convert_to_proton_c.mk
 endif
 
+ifeq ($(strip $(CTPIM)), yes)
+  CONVERT_TO_PICO_MICRO=yes
+endif
+
+ifeq ($(strip $(CONVERT_TO_PICO_MICRO)), yes)
+    include platforms/pico/convert_to_pico_micro.mk
+endif
+
+
 ifneq ($(FORCE_LAYOUT),)
     TARGET := $(TARGET)_$(FORCE_LAYOUT)
 endif
