@@ -14,6 +14,10 @@ enum {
     ITF_NUM_HID_CONSOLE,
     ITF_NUM_CDC,
     ITF_NUM_CDC_DATA,
+#ifdef MIDI_ENABLE
+    ITF_NUM_MIDI,
+    ITF_NUM_MIDI_STREAMING,
+#endif
     ITF_NUM_TOTAL
 };
 

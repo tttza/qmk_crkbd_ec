@@ -77,9 +77,15 @@ uint8_t const* tud_descriptor_device_cb(void) {
 // Configuration Descriptor
 //--------------------------------------------------------------------+
 
+#ifdef MIDI_ENABLE
+#    define MIDI_DESC_LEN TUD_MIDI_DESC_LEN
+#else
+#    define MIDI_DESC_LEN 0
+#endif
+
 #define CONFIG_TOTAL_LEN                                             \
     (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN * 4 + \
-     TUD_HID_INOUT_DESC_LEN)
+     TUD_HID_INOUT_DESC_LEN + MIDI_DESC_LEN)
 
 #define EPNUM_HID_KEYBOARD_IN 0x81
 #define EPNUM_HID_MOUSE_IN 0x82
@@ -91,6 +97,11 @@ uint8_t const* tud_descriptor_device_cb(void) {
 #define EPNUM_CDC_NOTIF 0x86
 #define EPNUM_CDC_OUT 0x07
 #define EPNUM_CDC_IN 0x87
+
+#ifdef MIDI_ENABLE
+#    define EPNUM_MIDI_IN 0x88
+#    define EPNUM_MIDI_OUT 0x08
+#endif
 
 static uint8_t const desc_keyboard[] = {TUD_HID_REPORT_DESC_KEYBOARD()};
 
@@ -151,6 +162,9 @@ uint8_t const desc_fs_configuration[] = {
     TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 2, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT,
                        EPNUM_CDC_IN, 64),
 
+#ifdef MIDI_ENABLE
+    TUD_MIDI_DESCRIPTOR(ITF_NUM_MIDI, 2, EPNUM_MIDI_OUT, EPNUM_MIDI_IN, 64)
+#endif
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR

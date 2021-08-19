@@ -63,8 +63,15 @@ static void raw_hid_task(void) {
     // TODO
 }
 
+static void midi_ep_task(void) {
+}
+
 void qmk_init(void) {
     keyboard_setup();
+
+#ifdef MIDI_ENABLE
+    setup_midi();
+#endif
 
     keyboard_init();
     host_set_driver(&driver);

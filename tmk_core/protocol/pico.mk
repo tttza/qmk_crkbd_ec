@@ -18,3 +18,9 @@ CFLAGS += -DGPIO_INPUT_PIN_DELAY=100
 
 VPATH += $(TMK_PATH)/protocol
 VPATH += $(PROTOCOL_DIR)
+VPATH += $(PROTOCOL_DIR)/lufa_utils
+
+ifeq ($(strip $(MIDI_ENABLE)), yes)
+	include $(TMK_PATH)/protocol/midi.mk
+endif
+
