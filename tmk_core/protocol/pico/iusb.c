@@ -11,6 +11,9 @@
 #include "hid_device.h"
 #include "class/midi/midi_device.h"
 
+uint8_t keyboard_idle     = 0;
+uint8_t keyboard_protocol = 1;
+
 uint8_t keyboard_leds(void) {
     return get_keyboard_led_status();
 }
@@ -74,6 +77,7 @@ void raw_hid_send(uint8_t *data, uint8_t length) {
 #ifdef MIDI_ENABLE
 void send_midi_packet(MIDI_EventPacket_t *event) {
     tud_midi_packet_write((uint8_t *)event);
+    tud_task();
 }
 
 bool recv_midi_packet(MIDI_EventPacket_t *const event) {
@@ -86,11 +90,4 @@ bool recv_midi_packet(MIDI_EventPacket_t *const event) {
     }
 }
 
-void midi_ep_task(void) {
-    // uint8_t packet[4];
-    // while (tud_midi_available()) {
-    //     tud_midi_packet_read(packet);
-    //     recv_midi_packet(&event);
-    // }
-}
 #endif // MIDI_ENABLE
