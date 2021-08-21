@@ -361,3 +361,5 @@ flash: $(BUILD_DIR)/$(TRAGET).elf cpfirmware sizeafter
 	done
 	$(PICOTOOL) load $(BUILD_DIR)/$(TARGET).elf && $(PICOTOOL) reboot
 
+uf2: $(BUILD_DIR)/$(TARGET).bin
+	./util/uf2conv.py -f 0xe48bff56 -b 0x10000000 -o $(TARGET).uf2 $^
