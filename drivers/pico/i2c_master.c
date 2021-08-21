@@ -9,12 +9,22 @@
 
 static uint8_t i2c_address;
 
+static i2c_status_t pico_status_to_qmk(int res) {
+    if (res == PICO_ERROR_GENERIC) {
+        return I2C_STATUS_ERROR;
+    } else if (res == PICO_ERROR_TIMEOUT) {
+        return I2C_STATUS_TIMEOUT;
+    } else {
+        return I2C_STATUS_SUCCESS;
+    }
+}
+
 void i2c_init_pico(void) {
     static bool is_initialised = false;
     if (!is_initialised) {
         is_initialised = true;
 
-        i2c_init(I2C_DRIVER, 400 * 1000);
+        i2c_init(I2C_DRIVER, 50 * 1000);
         gpio_set_function(I2C1_SCL, GPIO_FUNC_I2C);
         gpio_set_function(I2C1_SDA, GPIO_FUNC_I2C);
         gpio_pull_up(I2C1_SCL);
@@ -36,7 +46,7 @@ i2c_status_t i2c_transmit(uint8_t address, const uint8_t* data, uint16_t length,
     int res = i2c_write_timeout_us(I2C_DRIVER, i2c_address >> 1, data, length,
                                    true, timeout * 1000);
 
-    return (res == PICO_ERROR_GENERIC) ? I2C_STATUS_ERROR : I2C_STATUS_SUCCESS;
+    return pico_status_to_qmk(res);
 }
 
 i2c_status_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length,
@@ -46,7 +56,7 @@ i2c_status_t i2c_receive(uint8_t address, uint8_t* data, uint16_t length,
     int res = i2c_read_timeout_us(I2C_DRIVER, i2c_address >> 1, data, length,
                                   true, timeout * 1000);
 
-    return (res == PICO_ERROR_GENERIC) ? I2C_STATUS_ERROR : I2C_STATUS_SUCCESS;
+    return pico_status_to_qmk(res);
 }
 
 i2c_status_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, const uint8_t* data,
@@ -62,7 +72,8 @@ i2c_status_t i2c_writeReg(uint8_t devaddr, uint8_t regaddr, const uint8_t* data,
     int res =
         i2c_write_timeout_us(I2C_DRIVER, (i2c_address >> 1), complete_packet,
                              length + 1, true, timeout * 1000);
-    return (res == PICO_ERROR_GENERIC) ? I2C_STATUS_ERROR : I2C_STATUS_SUCCESS;
+
+    return pico_status_to_qmk(res);
 }
 
 i2c_status_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data,
@@ -74,7 +85,7 @@ i2c_status_t i2c_readReg(uint8_t devaddr, uint8_t regaddr, uint8_t* data,
     int res = i2c_read_timeout_us(I2C_DRIVER, i2c_address >> 1, data, length,
                                   true, timeout * 1000);
 
-    return (res == PICO_ERROR_GENERIC) ? I2C_STATUS_ERROR : I2C_STATUS_SUCCESS;
+    return pico_status_to_qmk(res);
 }
 
 void i2c_stop(void) {
