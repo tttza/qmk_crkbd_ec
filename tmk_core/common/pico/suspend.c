@@ -6,12 +6,7 @@
 #include "led.h"
 #include "host.h"
 
-#ifdef PROTOCOL_LUFA
-#    include "lufa.h"
-#endif
-#ifdef PROTOCOL_VUSB
-#    include "vusb.h"
-#endif
+#include "tusb.h"
 
 #ifdef BACKLIGHT_ENABLE
 #    include "backlight.h"
@@ -51,12 +46,7 @@ __attribute__((weak)) void suspend_power_down_kb(void) { suspend_power_down_user
  * FIXME: needs doc
  */
 void suspend_power_down(void) {
-#ifdef PROTOCOL_LUFA
-    if (USB_DeviceState == DEVICE_STATE_Configured) return;
-#endif
-#ifdef PROTOCOL_VUSB
-    if (!vusb_suspended) return;
-#endif
+    if (!tud_suspended()) return;
 
     suspend_power_down_kb();
 
