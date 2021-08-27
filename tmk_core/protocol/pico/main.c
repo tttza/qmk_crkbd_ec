@@ -29,6 +29,7 @@
 
 #include "qmk_main.h"
 #include "raw_hid.h"
+#include "bootloader.h"
 
 #include "pico_eeprom.h"
 #include "usb_descriptors.h"
@@ -42,7 +43,7 @@
 //--------------------------------------------------------------------+
 static int cdc_in_chars(char* buf, int len) { return 0; }
 
-static void cdc_write(const char* buf, int32_t length) {
+static void cdc_write(const char* buf, int length) {
     static uint64_t last_avail_time;
     if (tud_cdc_connected()) {
         for (int i = 0; i < length;) {
