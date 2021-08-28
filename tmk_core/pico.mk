@@ -15,6 +15,11 @@ OPT_DEFS += -DSPLIT_USB_DETECT
 PICOTOOL ?= picotool
 RP2BOOT_ID ?= "2e8a:0003"
 
+PICO_SDK_EXIST = $(shell test -d $(PICO_SDK_PATH)/src && echo true)
+ifneq ($(PICO_SDK_EXIST),true)
+$(error pico-sdk does not found at PICO_SDK_PATH. Please setup pico-sdk.)
+endif
+
 CFLAGS += -DCFG_TUSB_DEBUG=0
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_RP2040
 CFLAGS += -DCFG_TUSB_OS=OPT_OS_PICO
