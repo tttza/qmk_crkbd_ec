@@ -89,6 +89,8 @@ int main(void) {
         tud_task();  // tinyusb device task
 
         qmk_task();
+
+        pico_eepemu_lazy_write_back();
     }
 
     return 0;

@@ -4,6 +4,11 @@
 // qmk
 #include "eeprom.h"
 #include "eeconfig.h"
+#include "timer.h"
+#include "debug.h"
+#include "print.h"
+
+#include "pico_eeprom.h"
 
 // pico
 #include "pico/stdlib.h"
@@ -17,6 +22,8 @@
 #define EEPEMU_EECONFIG_SIZE 1024
 #define EEPEMU_KEYMAP_SIZE 4096
 
+#define EEPEMU_LAZY_WRITEBACK_TIMEOUT 30000 // write back to ROM if 30s elapsed.
+
 _Static_assert(EEPEMU_EECONFIG_START_OFFSET % FLASH_SECTOR_SIZE == 0,
                "Offset should be aligned to FLASH_SCTOR_SIZE");
 _Static_assert(EEPEMU_KEYMAP_START_OFFSET % FLASH_SECTOR_SIZE == 0,
@@ -24,6 +31,8 @@ _Static_assert(EEPEMU_KEYMAP_START_OFFSET % FLASH_SECTOR_SIZE == 0,
 
 static uint8_t eepemu_eeconfig[EEPEMU_EECONFIG_SIZE];      // 1kB
 static uint8_t eepemu_dynamic_keymap[EEPEMU_KEYMAP_SIZE];  // 4kB
+static int32_t eeconfig_last_edit;
+static int32_t dynamic_keymap_last_edit;
 
 // Load ROM data to RAM
 void pico_eepemu_init(void) {
@@ -31,6 +40,27 @@ void pico_eepemu_init(void) {
            sizeof(eepemu_eeconfig));
     memcpy(eepemu_dynamic_keymap, (void *)XIP_BASE + EEPEMU_KEYMAP_START_OFFSET,
            sizeof(eepemu_dynamic_keymap));
+
+    eeconfig_last_edit       = -1;
+    dynamic_keymap_last_edit = -1;
+}
+
+void pico_eepemu_lazy_write_back(void) {
+    if (eeconfig_last_edit >= 0) {
+        if (timer_elapsed(eeconfig_last_edit) >=
+            EEPEMU_LAZY_WRITEBACK_TIMEOUT) {
+            printf("eeconfig is written to ROM\n");
+            pico_eepemu_flash_eeconfig();
+        }
+    }
+
+    if (dynamic_keymap_last_edit >= 0) {
+        if (timer_elapsed(dynamic_keymap_last_edit) >=
+            EEPEMU_LAZY_WRITEBACK_TIMEOUT) {
+            printf("Dynamic keymap is written to ROM\n");
+            pico_eepemu_flash_dynamic_keymap();
+        }
+    }
 }
 
 void pico_eepemu_flash_eeconfig(void) {
@@ -39,6 +69,7 @@ void pico_eepemu_flash_eeconfig(void) {
     flash_range_erase(EEPEMU_EECONFIG_START_OFFSET, FLASH_SECTOR_SIZE);
     flash_range_program(EEPEMU_EECONFIG_START_OFFSET, eepemu_eeconfig,
                         sizeof(eepemu_eeconfig));
+    eeconfig_last_edit = -1;
 
     restore_interrupts(status);
 }
@@ -49,6 +80,7 @@ void pico_eepemu_flash_dynamic_keymap(void) {
     flash_range_erase(EEPEMU_KEYMAP_START_OFFSET, FLASH_SECTOR_SIZE);
     flash_range_program(EEPEMU_KEYMAP_START_OFFSET, eepemu_dynamic_keymap,
                         sizeof(eepemu_dynamic_keymap));
+    dynamic_keymap_last_edit = -1;
 
     restore_interrupts(status);
 }
@@ -62,9 +94,17 @@ void pico_eepemu_flash_dynamic_keymap(void) {
 #    endif
 #endif
 
+static inline bool is_eeconfig_addr(const void *eeaddr) {
+    if ((uint32_t)eeaddr < DYNAMIC_KEYMAP_EEPROM_ADDR) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 static void *convert_address(const void *addr) {
     // TODO Assert address
-    if ((uint32_t)addr < DYNAMIC_KEYMAP_EEPROM_ADDR) {
+    if (is_eeconfig_addr(addr)) {
         return (void *)(eepemu_eeconfig + (uint32_t)addr);
     } else {
         return (void *)(eepemu_dynamic_keymap + (uint32_t)addr -
@@ -120,12 +160,23 @@ void eeprom_read_block(void *__dst, const void *__src, size_t __n) {
     memcpy(__dst, addr, __n);
 }
 
+static void update_last_edit_time(const void *eeaddr) {
+    if (is_eeconfig_addr(eeaddr)) {
+        eeconfig_last_edit = timer_read();
+    } else {
+        dynamic_keymap_last_edit = timer_read();
+    }
+}
+
 void eeprom_write_byte(uint8_t *__p, uint8_t __value) {
     uint8_t *addr = convert_address(__p);
     if (addr == NULL) {
         return;
     }
+
     *addr = __value;
+
+    update_last_edit_time(__p);
 }
 
 void eeprom_write_word(uint16_t *__p, uint16_t __value) {
@@ -139,6 +190,8 @@ void eeprom_write_word(uint16_t *__p, uint16_t __value) {
     } else {
         memcpy(addr, &__value, sizeof(__value));
     }
+
+    update_last_edit_time(__p);
 }
 void eeprom_write_dword(uint32_t *__p, uint32_t __value) {
     uint32_t *addr = convert_address(__p);
@@ -151,6 +204,8 @@ void eeprom_write_dword(uint32_t *__p, uint32_t __value) {
     } else {
         memcpy(addr, &__value, sizeof(__value));
     }
+
+    update_last_edit_time(__p);
 }
 
 void eeprom_write_block(const void *__src, void *__dst, size_t __n) {
@@ -160,20 +215,35 @@ void eeprom_write_block(const void *__src, void *__dst, size_t __n) {
     }
 
     memcpy(addr, __src, __n);
+
+    update_last_edit_time(__dst);
 }
 
 void eeprom_update_byte(uint8_t *__p, uint8_t __value) {
-    eeprom_write_byte(__p, __value);
+    if (eeprom_read_byte(__p) != __value) {
+        eeprom_write_byte(__p, __value);
+    }
 }
 
 void eeprom_update_word(uint16_t *__p, uint16_t __value) {
-    eeprom_write_word(__p, __value);
+    if (eeprom_read_word(__p) != __value) {
+        eeprom_write_word(__p, __value);
+    }
 }
 
 void eeprom_update_dword(uint32_t *__p, uint32_t __value) {
-    eeprom_write_dword(__p, __value);
+    if (eeprom_read_dword(__p) != __value) {
+        eeprom_write_dword(__p, __value);
+    }
 }
 
 void eeprom_update_block(const void *__src, void *__dst, size_t __n) {
-    eeprom_write_block(__src, __dst, __n);
+    uint32_t *addr = convert_address(__dst);
+    if (addr == NULL) {
+        return;
+    }
+
+    if (memcmp(__src, addr, __n) != 0) {
+        eeprom_write_block(__src, __dst, __n);
+    }
 }
