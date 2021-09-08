@@ -9,6 +9,8 @@
 #define MANUFACTURER    40 Percent Club
 #define PRODUCT         PiPi Gherkin
 
+#define DYNAMIC_KEYMAP_LAYER_COUNT 6
+
 /* key matrix size */
 #define MATRIX_ROWS 5
 #define MATRIX_COLS 6
