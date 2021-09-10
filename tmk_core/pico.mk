@@ -359,6 +359,24 @@ PROTOCOLSRC += $(PICO_SDK_PATH)/lib/tinyusb/src/tusb.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/lib/tinyusb/src/common/tusb_fifo.c
 PROTOCOLSRC += $(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c
 
+BOOT2INC_DIR += -I$(PROTOCOL_DIR)
+BOOT2INC_DIR += -I$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/include
+BOOT2INC_DIR += -I$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/asminclude
+
+$(KEYBOARD_OUTPUT)/src/bs2_default.o: $(PICO_SDK_PATH)/src/rp2_common/boot_stage2/compile_time_choice.S
+	$(CC) $(CFLAGS) $(BOOT2INC_DIR) -c -o $@ $^
+
+$(KEYBOARD_OUTPUT)/src/bs2_default.elf: $(KEYBOARD_OUTPUT)/src/bs2_default.o
+	$(CC) $(CFLAGS) -Wl,--build-id=none -nostartfiles -Wl,--script=$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/boot_stage2.ld $^ -o $@
+
+
+$(KEYBOARD_OUTPUT)/src/bs2_default.bin: $(KEYBOARD_OUTPUT)/src/bs2_default.elf
+	$(OBJCOPY) -Obinary $^ $@
+
+$(KEYBOARD_OUTPUT)/src/bs2_default_padded_checksummed.S: $(KEYBOARD_OUTPUT)/src/bs2_default.bin
+	$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/pad_checksum -s 0xffffffff $^ $@
+
+
 flash: $(BUILD_DIR)/$(TRAGET).elf cpfirmware sizeafter
 	until lsusb | grep -q $(RP2BOOT_ID); do\
 		printf "$(MSG_BOOTLOADER_NOT_FOUND)" ;\

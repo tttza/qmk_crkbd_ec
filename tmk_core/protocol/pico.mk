@@ -3,8 +3,7 @@ COMMON_VPATH += $(DRIVER_PATH)/pico
 
 PROTOCOL_DIR := $(TMK_PATH)/protocol/pico
 
-## TODO Generate by makefile
-SRC += $(PROTOCOL_DIR)/bs2_default_padded_checksummed.S
+SRC += $(KEYBOARD_OUTPUT)/src/bs2_default_padded_checksummed.S
 LDSCRIPT := $(PICO_SDK_PATH)/src/rp2_common/pico_standard_link/memmap_default.ld
 
 SRC += $(PROTOCOL_DIR)/main.c
