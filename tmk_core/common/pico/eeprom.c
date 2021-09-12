@@ -15,14 +15,45 @@
 #include "hardware/flash.h"
 #include "hardware/sync.h"
 
-// TODO Define from Flash size
-#define EEPEMU_EECONFIG_START_OFFSET 0x40000  // First 256kB is program area
-#define EEPEMU_KEYMAP_START_OFFSET 0x41000
+#ifndef DYNAMIC_KEYMAP_EEPROM_ADDR
+#    ifdef VIA_EEPROM_CUSTOM_CONFIG_ADDR
+#        define DYNAMIC_KEYMAP_EEPROM_ADDR \
+            (VIA_EEPROM_CUSTOM_CONFIG_ADDR + VIA_EEPROM_CUSTOM_CONFIG_SIZE)
+#    else
+#        define DYNAMIC_KEYMAP_EEPROM_ADDR (EECONFIG_SIZE + 1)
+#    endif
+#endif
 
-#define EEPEMU_EECONFIG_SIZE 1024
-#define EEPEMU_KEYMAP_SIZE 4096
+#ifndef EEPEMU_EECONFIG_SIZE
+#    define EEPEMU_EECONFIG_SIZE 1024
+#endif
+_Static_assert(EEPEMU_EECONFIG_SIZE > EECONFIG_SIZE,
+               "EEPEMU_EECONFIG Region is too small");
 
-#define EEPEMU_LAZY_WRITEBACK_TIMEOUT 30000 // write back to ROM if 30s elapsed.
+#ifndef EEPEMU_KEYMAP_SIZE
+#    define EEPEMU_KEYMAP_SIZE 4096
+#endif
+_Static_assert(EEPEMU_KEYMAP_SIZE > DYNAMIC_KEYMAP_EEPROM_MAX_ADDR,
+               "EEPEMU_KEYMAP Region is too small");
+
+#define ALIGNED_REGION(size, align) ((size + align - 1) / align * align)
+
+#ifndef EEPEMU_KEYMAP_START_OFFSET
+#    define EEPEMU_KEYMAP_START_OFFSET \
+        (PICO_FLASH_SIZE_BYTES -       \
+         ALIGNED_REGION(EEPEMU_KEYMAP_SIZE, FLASH_SECTOR_SIZE))
+#endif
+
+#ifndef EEPEMU_EECONFIG_START_OFFSET
+#    define EEPEMU_EECONFIG_START_OFFSET \
+        (EEPEMU_KEYMAP_START_OFFSET -    \
+         ALIGNED_REGION(EEPEMU_EECONFIG_SIZE, FLASH_SECTOR_SIZE))
+#endif
+
+#ifndef EEPEMU_LAZY_WRITEBACK_TIMEOUT
+#    define EEPEMU_LAZY_WRITEBACK_TIMEOUT \
+        30000  // write back to ROM if 30s elapsed.
+#endif
 
 _Static_assert(EEPEMU_EECONFIG_START_OFFSET % FLASH_SECTOR_SIZE == 0,
                "Offset should be aligned to FLASH_SCTOR_SIZE");
@@ -84,15 +115,6 @@ void pico_eepemu_flash_dynamic_keymap(void) {
 
     restore_interrupts(status);
 }
-
-#ifndef DYNAMIC_KEYMAP_EEPROM_ADDR
-#    ifdef VIA_EEPROM_CUSTOM_CONFIG_ADDR
-#        define DYNAMIC_KEYMAP_EEPROM_ADDR \
-            (VIA_EEPROM_CUSTOM_CONFIG_ADDR + VIA_EEPROM_CUSTOM_CONFIG_SIZE)
-#    else
-#        define DYNAMIC_KEYMAP_EEPROM_ADDR (EECONFIG_SIZE + 1)
-#    endif
-#endif
 
 static inline bool is_eeconfig_addr(const void *eeaddr) {
     if ((uint32_t)eeaddr < DYNAMIC_KEYMAP_EEPROM_ADDR) {
