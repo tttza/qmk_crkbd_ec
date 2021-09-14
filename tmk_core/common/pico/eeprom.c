@@ -1,5 +1,6 @@
 
 #include <string.h>
+#include <stdio.h>
 
 // qmk
 #include "eeprom.h"
