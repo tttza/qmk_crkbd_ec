@@ -8,5 +8,5 @@ bool usb_connected_state(void) {
     return tud_connected();
 }
 void usb_disconnect(void) {
-#        warning "No implementation" //TODO implement
+#warning "No implementation" //TODO implement
 }

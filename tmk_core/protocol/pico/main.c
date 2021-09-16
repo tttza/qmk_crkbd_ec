@@ -30,6 +30,7 @@
 #include "qmk_main.h"
 #include "raw_hid.h"
 #include "bootloader.h"
+#include "debug.h"
 
 #include "pico_eeprom.h"
 #include "usb_descriptors.h"
@@ -77,6 +78,7 @@ static stdio_driver_t stdio_driver = {.out_chars = cdc_write,
 /*------------- MAIN -------------*/
 int main(void) {
     board_init();
+    platform_setup();
     tusb_init();
 
     stdio_set_driver_enabled(&stdio_driver, true);
@@ -84,6 +86,8 @@ int main(void) {
     pico_eepemu_init();
 
     qmk_init();
+
+    debug_enable = true;
 
     while (1) {
         tud_task();  // tinyusb device task
@@ -161,6 +165,10 @@ void tud_cdc_rx_cb(uint8_t itf) {
             printf("init eeprom emulation\n");
             pico_eepemu_init();
             printf("complete\n");
+        } else if (buf[0] == 'd') {
+            printf("debug print ");
+            debug_enable = true;
+            dprint("true\n");
         }
     }
 }

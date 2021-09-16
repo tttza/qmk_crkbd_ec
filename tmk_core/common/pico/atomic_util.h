@@ -17,7 +17,7 @@
 
 #include "hardware/sync.h"
 
-static uint32_t interrupts;
+extern uint32_t interrupts;
 
 static __inline__ uint8_t __interrupt_disable__(void) {
     interrupts = save_and_disable_interrupts();

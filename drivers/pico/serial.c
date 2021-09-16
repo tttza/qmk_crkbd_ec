@@ -48,7 +48,12 @@
 inline static void serial_delay(void) { wait_us(SERIAL_DELAY); }
 inline static void serial_delay_half(void) { wait_us(SERIAL_DELAY / 2); }
 inline static void serial_delay_blip(void) { wait_us(1); }
-inline static void serial_output(void) { setPinOutput(SOFT_SERIAL_PIN); }
+inline static void serial_output(void) {
+    setPinOutput(SOFT_SERIAL_PIN);
+
+    gpio_set_slew_rate(SOFT_SERIAL_PIN, GPIO_SLEW_RATE_FAST);
+    gpio_set_drive_strength(SOFT_SERIAL_PIN, GPIO_DRIVE_STRENGTH_12MA);
+}
 inline static void serial_input(void) { setPinInputHigh(SOFT_SERIAL_PIN); }
 inline static bool serial_read_pin(void) { return readPin(SOFT_SERIAL_PIN); }
 inline static void serial_low(void) { writePinLow(SOFT_SERIAL_PIN); }
@@ -56,29 +61,32 @@ inline static void serial_high(void) { writePinHigh(SOFT_SERIAL_PIN); }
 
 void interrupt_handler(uint gpio, uint32_t events);
 
-static SSTD_t *Transaction_table      = NULL;
-static uint8_t Transaction_table_size = 0;
-
 static PIO  pio = pio0;
 static uint sm_tx, sm_rx;
 
 inline static void soft_serial_disable_rx(void) {
     pio_sm_set_enabled(pio, sm_rx, false);
+    pio_sm_restart(pio, sm_rx);
 }
 
 inline static void soft_serial_enable_rx(void) {
     setPinInputHigh(SOFT_SERIAL_PIN);
     // pio_gpio_init is not needed
+    pio_sm_clear_fifos(pio, sm_rx);
     pio_sm_set_enabled(pio, sm_rx, true);
 }
 
 inline static void soft_serial_disable_tx(void) {
     pio_sm_set_enabled(pio, sm_tx, false);
+    pio_sm_restart(pio, sm_tx);
 }
 
-inline static void soft_serial_enable_tx(void) {
+static void soft_serial_enable_tx(void) {
     writePinHigh(SOFT_SERIAL_PIN);
     setPinOutput(SOFT_SERIAL_PIN);
+    gpio_set_slew_rate(SOFT_SERIAL_PIN, GPIO_SLEW_RATE_FAST);
+    gpio_set_drive_strength(SOFT_SERIAL_PIN, GPIO_DRIVE_STRENGTH_12MA);
+    pio_sm_clear_fifos(pio, sm_tx);
     pio_gpio_init(pio, SOFT_SERIAL_PIN);
     pio_sm_set_enabled(pio, sm_tx, true);
 }
@@ -105,15 +113,13 @@ inline static int soft_serial_pio_init(void) {
 
     writePinHigh(SOFT_SERIAL_PIN);
     uart_tx_program_init(pio, sm_tx, offset, SOFT_SERIAL_PIN, SERIAL_BAUD);
+    soft_serial_disable_tx();
 
     return 0;
 }
 
 // Initialize master
-void soft_serial_initiator_init(SSTD_t *sstd_table, int sstd_table_size) {
-    Transaction_table      = sstd_table;
-    Transaction_table_size = (uint8_t)sstd_table_size;
-
+void soft_serial_initiator_init(void) {
     soft_serial_pio_init();
 
     serial_output();
@@ -121,10 +127,7 @@ void soft_serial_initiator_init(SSTD_t *sstd_table, int sstd_table_size) {
 }
 
 // Initialize slave
-void soft_serial_target_init(SSTD_t *sstd_table, int sstd_table_size) {
-    Transaction_table      = sstd_table;
-    Transaction_table_size = (uint8_t)sstd_table_size;
-
+void soft_serial_target_init(void) {
     soft_serial_pio_init();
 
     setPinInputHigh(SOFT_SERIAL_PIN);
@@ -137,9 +140,18 @@ void soft_serial_target_init(SSTD_t *sstd_table, int sstd_table_size) {
 static int __attribute__((noinline)) sync_recv(void) {
     serial_input();
 
-    volatile uint64_t timeout = time_us_64() + 1000;
+    volatile uint64_t timeout = time_us_64() + 10000;
+    while (!serial_read_pin() && time_us_64() < timeout) {
+        // tight_loop_contents();
+    }
+    if (time_us_64() >= timeout) {
+        // dprintf("serial::NO_RESPONSE0\n");
+        return -1;
+    }
+
+    timeout = time_us_64() + 10000;
     while (serial_read_pin() && time_us_64() < timeout) {
-        tight_loop_contents();
+        // tight_loop_contents();
     }
 
     if (time_us_64() >= timeout) {
@@ -147,9 +159,9 @@ static int __attribute__((noinline)) sync_recv(void) {
         return -1;
     }
 
-    timeout = time_us_64() + 1000;
+    timeout = time_us_64() + 10000;
     while (!serial_read_pin() && time_us_64() < timeout) {
-        tight_loop_contents();
+        // tight_loop_contents();
     }
 
     if (time_us_64() >= timeout) {
@@ -168,17 +180,20 @@ static void __attribute__((noinline)) sync_send(void) {
     serial_delay();
 
     serial_high();
+    while (!serial_read_pin()) {
+        continue;
+    }
 }
 
 // Reads a byte from the serial line
 static uint16_t __attribute__((noinline)) serial_read_byte(void) {
-    uint64_t timeout = time_us_64() + 1000;
+    uint64_t timeout = time_us_64() + 10000;
     while (pio_sm_is_rx_fifo_empty(pio, sm_rx) && (time_us_64() < timeout)) {
         tight_loop_contents();
     }
 
     if (time_us_64() >= timeout) {
-        dprintf("serial: pio_rx timeout\n");
+        // dprintf("serial: pio_rx timeout\n");
         return 0xffff;
     } else {
         return uart_rx_program_getc(pio, sm_rx);
@@ -188,6 +203,13 @@ static uint16_t __attribute__((noinline)) serial_read_byte(void) {
 // Sends a byte with MSB ordering
 static void __attribute__((noinline)) serial_write_byte(uint8_t data) {
     uart_tx_program_putc(pio, sm_tx, data);
+}
+
+static void serial_wait_send_complete(void) {
+    while (pio_sm_get_tx_fifo_level(pio, sm_tx) != 0) {
+        continue;
+    }
+    wait_us(1000000 * 12 / (SERIAL_BAUD));
 }
 
 // interrupt handle to be used by the slave device
@@ -204,36 +226,44 @@ void interrupt_handler(uint gpio, uint32_t events) {
     while (!serial_read_pin()) {
         continue;
     }
+    serial_delay_blip();
 
     sync_send();
 
     uint8_t checksum_computed = 0;
     int     sstd_index        = 0;
     int     receive_res       = 0;
-    SSTD_t *trans;
     uint8_t checksum_received = 0xff;
+
+    split_transaction_desc_t *trans;
+
+    serial_input();
+    while (!serial_read_pin()) {
+        continue;
+    }
 
     // activate receive
     soft_serial_enable_rx();
 
     do {
-#ifdef SERIAL_USE_MULTI_TRANSACTION
         sstd_index = serial_read_byte();
-        if (sstd_index > 0xff) {
+        if (sstd_index > NUM_TOTAL_TRANSACTIONS) {
+            printf("invalid sstd_index:%d\n", sstd_index);
             receive_res = -1;
             break;
         }
-#endif
 
-        trans = &Transaction_table[sstd_index];
+        soft_serial_disable_rx();
+
+        serial_delay();
+        sync_send();
+
+        soft_serial_enable_rx();
+
+        trans = &split_transaction_table[sstd_index];
         for (int i = 0; i < trans->initiator2target_buffer_size; ++i) {
-            uint16_t receive = serial_read_byte();
-            if (receive > 0xff) {
-                receive_res = -1;
-                break;
-            }
-            trans->initiator2target_buffer[i] = receive & 0xff;
-            checksum_computed += trans->initiator2target_buffer[i];
+            split_trans_initiator2target_buffer(trans)[i] = serial_read_byte();
+            checksum_computed += split_trans_initiator2target_buffer(trans)[i];
         }
         checksum_computed ^= 7;
         checksum_received = serial_read_byte();
@@ -259,24 +289,33 @@ void interrupt_handler(uint gpio, uint32_t events) {
     // wait for the sync to finish sending
     serial_delay();
 
+    // Allow any slave processing to occur
+    if (trans->slave_callback) {
+        trans->slave_callback(trans->initiator2target_buffer_size,
+                              split_trans_initiator2target_buffer(trans),
+                              trans->target2initiator_buffer_size,
+                              split_trans_target2initiator_buffer(trans));
+    }
+
     uint8_t checksum = 0;
     for (int i = 0; i < trans->target2initiator_buffer_size; ++i) {
-        serial_write_byte(trans->target2initiator_buffer[i]);
-        checksum += trans->target2initiator_buffer[i];
+        uint8_t b = split_trans_target2initiator_buffer(trans)[i];
+        serial_write_byte(b);
+        checksum += b;
     }
     serial_write_byte(checksum ^ 7);
-    soft_serial_disable_tx();
+    serial_wait_send_complete();
+
 
     *trans->status = (checksum_computed == checksum_received)
                          ? TRANSACTION_ACCEPTED
                          : TRANSACTION_DATA_ERROR;
 
+
     // end transaction
     serial_input();
 
-    // TODO: remove extra delay between transactions
-    serial_delay();
-
+    //
     gpio_set_irq_enabled_with_callback(SOFT_SERIAL_PIN, GPIO_IRQ_EDGE_FALL,
                                        true, interrupt_handler);
 
@@ -293,15 +332,10 @@ void interrupt_handler(uint gpio, uint32_t events) {
 //    TRANSACTION_NO_RESPONSE
 //    TRANSACTION_DATA_ERROR
 // this code is very time dependent, so we need to disable interrupts
-#ifndef SERIAL_USE_MULTI_TRANSACTION
-int soft_serial_transaction(void) {
-    int sstd_index = 0;
-#else
 int soft_serial_transaction(int sstd_index) {
-#endif
-
-    if (sstd_index > Transaction_table_size) return TRANSACTION_TYPE_ERROR;
-    SSTD_t *trans = &Transaction_table[sstd_index];
+    if (sstd_index > NUM_TOTAL_TRANSACTIONS) return TRANSACTION_TYPE_ERROR;
+    split_transaction_desc_t *trans = &split_transaction_table[sstd_index];
+    if (!trans->status) return TRANSACTION_TYPE_ERROR;  // not registered
 
     // TODO: remove extra delay between transactions
     serial_delay();
@@ -313,6 +347,7 @@ int soft_serial_transaction(int sstd_index) {
     serial_output();
     serial_low();
     serial_delay_blip();
+    serial_high();
 
     // wait for the slaves response
     if (sync_recv() != 0) {
@@ -320,22 +355,34 @@ int soft_serial_transaction(int sstd_index) {
         restore_interrupts(interrupt_status);
         return TRANSACTION_NO_RESPONSE;
     }
-    serial_delay();
 
     // if the slave is present syncronize with it
     soft_serial_enable_tx();
-    serial_delay();
 
     uint8_t checksum = 0;
     // send data to the slave
-#ifdef SERIAL_USE_MULTI_TRANSACTION
     serial_write_byte(sstd_index);  // first chunk is transaction id
-#endif
+    serial_wait_send_complete();
+
+    soft_serial_disable_tx();
+
+    if (sync_recv() != 0) {
+        // dprintf("NACK 1.5\n");
+        restore_interrupts(interrupt_status);
+        return TRANSACTION_NO_RESPONSE;
+    }
+
+    soft_serial_enable_tx();
+    serial_delay();
+
     for (int i = 0; i < trans->initiator2target_buffer_size; ++i) {
-        serial_write_byte(trans->initiator2target_buffer[i]);
-        checksum += trans->initiator2target_buffer[i];
+        serial_write_byte(split_trans_initiator2target_buffer(trans)[i]);
+        checksum += split_trans_initiator2target_buffer(trans)[i];
     }
     serial_write_byte(checksum ^ 7);
+
+    serial_wait_send_complete();
+
     soft_serial_disable_tx();
 
     if (sync_recv() != 0) {
@@ -348,18 +395,10 @@ int soft_serial_transaction(int sstd_index) {
 
     // receive data from the slave
     uint8_t checksum_computed = 0;
-    for (int i = 0; i < trans->target2initiator_buffer_size; ++i) {
-        uint16_t receive = serial_read_byte();
-        if (receive > 0xff) {
-            dprintf("serial: TIMEOUT\n");
-            soft_serial_disable_rx();
-            serial_output();
-            serial_high();
-            restore_interrupts(interrupt_status);
-            return TRANSACTION_DATA_ERROR;
-        }
-        trans->target2initiator_buffer[i] = receive;
-        checksum_computed += trans->target2initiator_buffer[i];
+    uint8_t receive_bytes = trans->target2initiator_buffer_size;
+    for (int i = 0; i < receive_bytes; ++i) {
+        split_trans_target2initiator_buffer(trans)[i] = serial_read_byte();
+        checksum_computed += split_trans_target2initiator_buffer(trans)[i];
     }
     checksum_computed ^= 7;
     uint8_t checksum_received = serial_read_byte();
@@ -379,8 +418,6 @@ int soft_serial_transaction(int sstd_index) {
     // always, release the line when not in use
     serial_high();
     serial_output();
-
-    // dprintf("serial::success\n");
 
     restore_interrupts(interrupt_status);
     return TRANSACTION_END;
