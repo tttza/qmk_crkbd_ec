@@ -355,18 +355,18 @@ ifneq ("$(wildcard $(KEYBOARD_PATH_5)/info.json)","")
     INFO_JSON_FILES += $(KEYBOARD_PATH_5)/info.json
 endif
 
-CONFIG_H += $(KEYBOARD_OUTPUT)/src/info_config.h $(KEYBOARD_OUTPUT)/src/layouts.h
+# CONFIG_H += $(KEYBOARD_OUTPUT)/src/info_config.h $(KEYBOARD_OUTPUT)/src/layouts.h
+#
+# $(KEYBOARD_OUTPUT)/src/info_config.h: $(INFO_JSON_FILES)
+# 	$(QMK_BIN) generate-config-h --quiet --keyboard $(KEYBOARD) --output $(KEYBOARD_OUTPUT)/src/info_config.h
+#
+# $(KEYBOARD_OUTPUT)/src/default_keyboard.h: $(INFO_JSON_FILES)
+# 	$(QMK_BIN) generate-keyboard-h --quiet --keyboard $(KEYBOARD) --output $(KEYBOARD_OUTPUT)/src/default_keyboard.h
+#
+# $(KEYBOARD_OUTPUT)/src/layouts.h: $(INFO_JSON_FILES)
+# 	$(QMK_BIN) generate-layouts --quiet --keyboard $(KEYBOARD) --output $(KEYBOARD_OUTPUT)/src/layouts.h
 
-$(KEYBOARD_OUTPUT)/src/info_config.h: $(INFO_JSON_FILES)
-	$(QMK_BIN) generate-config-h --quiet --keyboard $(KEYBOARD) --output $(KEYBOARD_OUTPUT)/src/info_config.h
-
-$(KEYBOARD_OUTPUT)/src/default_keyboard.h: $(INFO_JSON_FILES)
-	$(QMK_BIN) generate-keyboard-h --quiet --keyboard $(KEYBOARD) --output $(KEYBOARD_OUTPUT)/src/default_keyboard.h
-
-$(KEYBOARD_OUTPUT)/src/layouts.h: $(INFO_JSON_FILES)
-	$(QMK_BIN) generate-layouts --quiet --keyboard $(KEYBOARD) --output $(KEYBOARD_OUTPUT)/src/layouts.h
-
-generated-files: $(KEYBOARD_OUTPUT)/src/info_config.h $(KEYBOARD_OUTPUT)/src/default_keyboard.h $(KEYBOARD_OUTPUT)/src/layouts.h
+generated-files:
 
 .INTERMEDIATE : generated-files
 
