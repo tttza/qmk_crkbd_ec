@@ -36,8 +36,13 @@
 #include "usb_descriptors.h"
 
 #include "pico/stdio/driver.h"
+#include "hardware/watchdog.h"
+#include "hardware/structs/watchdog.h"
 #include "bsp/board.h"
 #include "tusb.h"
+
+void platform_setup(void);
+extern char __StackTop;
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
@@ -75,19 +80,29 @@ static stdio_driver_t stdio_driver = {.out_chars = cdc_write,
                                       .in_chars  = cdc_in_chars,
                                       .next      = NULL};
 
+void pico_cdc_enable_printf(void) {
+    stdio_set_driver_enabled(&stdio_driver, true);
+}
+void pico_cdc_disable_printf(void) {
+    stdio_set_driver_enabled(&stdio_driver, false);
+}
+
 /*------------- MAIN -------------*/
 int main(void) {
+    if (watchdog_caused_reboot() && watchdog_hw->scratch[0] == 0x2040dead) {
+        bootloader_jump();
+    }
+    watchdog_enable(8000, 1);
+    watchdog_hw->scratch[0] = 0x2040dead;
+
     board_init();
     platform_setup();
     tusb_init();
 
-    stdio_set_driver_enabled(&stdio_driver, true);
-
+    pico_cdc_enable_printf();
     pico_eepemu_init();
 
     qmk_init();
-
-    debug_enable = true;
 
     while (1) {
         tud_task();  // tinyusb device task
@@ -95,6 +110,8 @@ int main(void) {
         qmk_task();
 
         pico_eepemu_lazy_write_back();
+
+        watchdog_update();
     }
 
     return 0;
@@ -131,11 +148,43 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts) {
     }
 }
 
+__attribute__((weak)) void pico_cdc_change_baudrate_cb(uint32_t baudrate) {
+    if (baudrate == 1200) {
+        bootloader_jump();
+    }
+}
+
 void tud_cdc_line_coding_cb(uint8_t                  itf,
                             cdc_line_coding_t const* p_line_coding) {
     (void)itf;
-    if (p_line_coding->bit_rate == 1200) {
-        bootloader_jump();
+    pico_cdc_change_baudrate_cb(p_line_coding->bit_rate);
+}
+
+__attribute__((weak)) void pico_cdc_receive_cb(uint8_t const* buf,
+                                               uint32_t       cnt) {
+    tud_cdc_write(buf, cnt);
+    tud_cdc_write_flush();
+
+    if (buf[0] == 's') {
+        printf("save keymap to eeprom\n");
+        pico_eepemu_flash_dynamic_keymap();
+        printf("complete\n");
+        printf("save eeconfig to eeprom\n");
+        pico_eepemu_flash_eeconfig();
+        printf("complete\n");
+    } else if (buf[0] == 'l') {
+        printf("init eeprom emulation\n");
+        pico_eepemu_init();
+        printf("complete\n");
+    } else if (buf[0] == 'd') {
+        printf("debug print ");
+        if (!debug_enable) {
+            debug_enable = true;
+            dprint("true\n");
+        } else {
+            debug_enable = false;
+            print("false\n");
+        }
     }
 }
 
@@ -147,29 +196,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
         uint32_t count = tud_cdc_read(buf, sizeof(buf));
         (void)count;
 
-        // Echo back
-        // Note: Skip echo by commenting out write() and write_flush()
-        // for throughput test e.g
-        //    $ dd if=/dev/zero of=/dev/ttyACM0 count=10000
-        tud_cdc_write(buf, count);
-        tud_cdc_write_flush();
-
-        if (buf[0] == 's') {
-            printf("save keymap to eeprom\n");
-            pico_eepemu_flash_dynamic_keymap();
-            printf("complete\n");
-            printf("save eeconfig to eeprom\n");
-            pico_eepemu_flash_eeconfig();
-            printf("complete\n");
-        } else if (buf[0] == 'l') {
-            printf("init eeprom emulation\n");
-            pico_eepemu_init();
-            printf("complete\n");
-        } else if (buf[0] == 'd') {
-            printf("debug print ");
-            debug_enable = true;
-            dprint("true\n");
-        }
+        pico_cdc_receive_cb((uint8_t*)buf, count);
     }
 }
 

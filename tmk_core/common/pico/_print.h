@@ -28,6 +28,7 @@
 
 // Create user & normal print defines
 #define xprintf(...) printf(__VA_ARGS__)
+#define xputc(c) putc(c, stdout)
 #define print(s) printf(PSTR(s))
 #define println(s) printf(PSTR(s "\r\n"))
 #define uprint(s) printf(s)
