@@ -86,6 +86,7 @@ CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_uart/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_i2c/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_spi/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_pio/include
+CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_pwm/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_divider/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_time/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_timer/include
