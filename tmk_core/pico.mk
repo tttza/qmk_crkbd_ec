@@ -359,7 +359,6 @@ SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/dfu/dfu_rt_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/hid/hid_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/midi/midi_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/msc/msc_device.c
-SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/net/net_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/usbtmc/usbtmc_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/vendor/vendor_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/tusb.c
