@@ -79,6 +79,7 @@ CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_platform/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2040/hardware_regs/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_base/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2040/hardware_structs/include
+CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_adc/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_claim/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_dma/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/hardware_sync/include
@@ -297,6 +298,8 @@ LDFLAGS += -Wl,--wrap=getchar
 LDFLAGS += -Wl,--print-memory-usage
 
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_stdlib/stdlib.c
+SRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_adc/adc.c
+SRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_sync/sync.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_flash/flash.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_gpio/gpio.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_claim/claim.c
