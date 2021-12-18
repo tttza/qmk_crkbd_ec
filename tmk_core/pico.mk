@@ -61,6 +61,7 @@ CFLAGS += -DLIB_PICO_SYNC_MUTEX=1
 CFLAGS += -DLIB_PICO_SYNC_SEM=1
 CFLAGS += -DLIB_PICO_TIME=1
 CFLAGS += -DLIB_PICO_UTIL=1
+CFLAGS += -DLIB_PICO_MULTICORE=1
 CFLAGS += -DLIB_TINYUSB_BOARD=1
 CFLAGS += -DLIB_TINYUSB_DEVICE=1
 CFLAGS += -DPICO_BOARD=\"pico\"
@@ -119,6 +120,7 @@ CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_binary_info/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_stdio/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_stdio_uart/include
+CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_multicore/include
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/common
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/hw
@@ -355,6 +357,7 @@ SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_standard_link/new_delete.cpp
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_standard_link/binary_info.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_stdio/stdio.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_stdio_uart/stdio_uart.c
+SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_multicore/multicore.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_bootsel_via_double_reset/pico_bootsel_via_double_reset.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/hw/bsp/rp2040/family.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c

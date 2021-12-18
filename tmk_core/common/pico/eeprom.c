@@ -95,7 +95,12 @@ void pico_eepemu_lazy_write_back(void) {
     }
 }
 
+__attribute__((weak)) void pico_before_flash_operation(void) { }
+__attribute__((weak)) void pico_after_flash_operation(void) { }
+
 void pico_eepemu_flash_eeconfig(void) {
+    pico_before_flash_operation();
+
     int32_t status = save_and_disable_interrupts();
 
     flash_range_erase(EEPEMU_EECONFIG_START_OFFSET, FLASH_SECTOR_SIZE);
@@ -104,9 +109,13 @@ void pico_eepemu_flash_eeconfig(void) {
     eeconfig_last_edit = -1;
 
     restore_interrupts(status);
+
+    pico_after_flash_operation();
 }
 
 void pico_eepemu_flash_dynamic_keymap(void) {
+    pico_before_flash_operation();
+
     int32_t status = save_and_disable_interrupts();
 
     flash_range_erase(EEPEMU_KEYMAP_START_OFFSET, FLASH_SECTOR_SIZE);
@@ -115,6 +124,8 @@ void pico_eepemu_flash_dynamic_keymap(void) {
     dynamic_keymap_last_edit = -1;
 
     restore_interrupts(status);
+
+    pico_after_flash_operation();
 }
 
 static inline bool is_eeconfig_addr(const void *eeaddr) {
