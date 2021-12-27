@@ -32,7 +32,7 @@
 #include "bootloader.h"
 #include "debug.h"
 
-#include "pico_eeprom.h"
+#include "eeprom_pico.h"
 #include "usb_descriptors.h"
 
 #include "pico/stdio/driver.h"
@@ -100,7 +100,8 @@ int main(void) {
     tusb_init();
 
     pico_cdc_enable_printf();
-    pico_eepemu_init();
+
+    EEPROM_Init();
 
     qmk_init();
 
@@ -108,8 +109,6 @@ int main(void) {
         tud_task();  // tinyusb device task
 
         qmk_task();
-
-        pico_eepemu_lazy_write_back();
 
         watchdog_update();
     }
@@ -165,16 +164,15 @@ __attribute__((weak)) void pico_cdc_receive_cb(uint8_t const* buf,
     tud_cdc_write(buf, cnt);
     tud_cdc_write_flush();
 
-    if (buf[0] == 's') {
-        printf("save keymap to eeprom\n");
-        pico_eepemu_flash_dynamic_keymap();
-        printf("complete\n");
-        printf("save eeconfig to eeprom\n");
-        pico_eepemu_flash_eeconfig();
-        printf("complete\n");
+    if (buf[0] == 'b') {
+        bootloader_jump();
     } else if (buf[0] == 'l') {
         printf("init eeprom emulation\n");
-        pico_eepemu_init();
+        EEPROM_Init();
+        printf("complete\n");
+    } else if (buf[0] == 'c') {
+        printf("clear eeprom emulation\n");
+        EEPROM_Erase();
         printf("complete\n");
     } else if (buf[0] == 'd') {
         printf("debug print ");
