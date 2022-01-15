@@ -32,7 +32,7 @@
 #define S7 7
 
 #if defined(PLATFORM_PICO)
-#    define WAIT_DISCHARGE() wait_us(10)
+#    define WAIT_DISCHARGE()
 #    define WAIT_CHARGE() wait_us(4)
 #    define cli() __interrupt_disable__()
 #    define sei() __interrupt_enable__(NULL)
@@ -109,6 +109,9 @@ int ecsm_init(ecsm_config_t const* const ecsm_config) {
 
     // set discharge pin to charge mode
     setPinInput(DISCHARGE_PIN);
+#if defined(PLATFORM_PICO)
+    gpio_set_drive_strength(DISCHARGE_PIN, GPIO_DRIVE_STRENGTH_12MA);
+#endif
 
     return 0;
 }
