@@ -328,7 +328,7 @@ bool process_packet(matrix_row_t current_matrix[]) {
         }
 
         if (receive_complete) {
-            matrix_has_changed = parse_packet(buf, widx, current_matrix);
+            matrix_has_changed |= parse_packet(buf, widx, current_matrix);
 
             receive_complete = false;
             widx             = 0;
