@@ -32,8 +32,10 @@ void platform_setup(void) {
 #endif
 
     for (int i = 0; i < 32; i++) {
-        gpio_init(i);
-        setPinInputHigh(i);
+        if ( i != RGB_DI_PIN ) {
+            gpio_init(i);
+            setPinInputHigh(i);
+        }
     }
 
     adc_init();
