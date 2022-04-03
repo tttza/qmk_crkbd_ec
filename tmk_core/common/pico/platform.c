@@ -27,7 +27,9 @@ uint32_t interrupts;
 
 void platform_setup(void) {
 
+#if PICO_SYSTEM_CLOCK_KHZ != 125000
     set_sys_clock_khz(PICO_SYSTEM_CLOCK_KHZ, true);
+#endif
 
     for (int i = 0; i < 32; i++) {
         gpio_init(i);
