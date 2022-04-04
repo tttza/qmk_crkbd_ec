@@ -204,3 +204,49 @@ void dynamic_keymap_reset() {
     }
 }
 
+uint8_t  encoder_modifier                = 0;
+uint16_t encoder_modifier_pressed_ms     = 0;
+bool     is_encoder_action               = false;
+
+#ifndef ENCODER_MODIFIER_TIMEOUT_MS
+#    define ENCODER_MODIFIER_TIMEOUT_MS 500
+#endif
+
+void matrix_scan_kb(void) {
+    if (encoder_modifier != 0 && timer_elapsed(encoder_modifier_pressed_ms) >
+                                     ENCODER_MODIFIER_TIMEOUT_MS) {
+        unregister_mods(encoder_modifier);
+        encoder_modifier = 0;
+    }
+}
+
+bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
+    if (encoder_modifier != 0 && !is_encoder_action) {
+        unregister_mods(encoder_modifier);
+        encoder_modifier = 0;
+    }
+
+    switch (keycode) {
+        case QK_MODS ... QK_MODS_MAX:
+            if (is_encoder_action) {
+                if (record->event.pressed) {
+                    uint8_t current_mods        = keycode >> 8;
+                    encoder_modifier_pressed_ms = timer_read();
+                    if (current_mods != encoder_modifier) {
+                        del_mods(encoder_modifier);
+                        encoder_modifier = current_mods;
+                        add_mods(encoder_modifier);
+                    }
+                    register_code(keycode & 0xff);
+                } else {
+                    unregister_code(keycode & 0xff);
+                }
+                return false;
+            } else {
+                return true;
+            }
+            break;
+    }
+
+    return process_record_user(keycode, record);
+}
