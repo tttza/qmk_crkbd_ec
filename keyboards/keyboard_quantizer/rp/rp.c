@@ -155,7 +155,13 @@ void pico_cdc_receive_cb(uint8_t const* buf, uint32_t cnt) {
                 send_reset_cmd();
                 break;
             case 'd':
-                debug_enable = true;
+                if (debug_enable) {
+                    puts("Disable debug output\n");
+                    debug_enable = false;
+                } else {
+                    puts("Enable debug output\n");
+                    debug_enable = true;
+                }
                 break;
             case 'b':
                 bootloader_jump();
