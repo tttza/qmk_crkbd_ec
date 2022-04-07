@@ -224,6 +224,7 @@ void matrix_scan_kb(void) {
         unregister_mods(encoder_modifier);
         encoder_modifier = 0;
     }
+    matrix_scan_user();
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
