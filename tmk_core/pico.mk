@@ -16,9 +16,10 @@ PICOTOOL ?= picotool
 RP2BOOT_ID ?= "2e8a:0003"
 LSUSB ?= lsusb
 
+PICO_SDK_PATH ?= lib/pico-sdk
 PICO_SDK_EXIST = $(shell test -d $(PICO_SDK_PATH)/src && echo true)
 ifneq ($(PICO_SDK_EXIST),true)
-$(error pico-sdk does not found at PICO_SDK_PATH. Please setup pico-sdk.)
+$(error pico-sdk does not found at PICO_SDK_PATH. Please setup pico-sdk by `make git-submodule`.)
 endif
 
 GIT_DESCRIBE = $(shell git describe --tags --long --dirty="\\*")

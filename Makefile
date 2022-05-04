@@ -555,6 +555,9 @@ lib/%:
 .PHONY: git-submodule
 git-submodule:
 	git submodule sync --recursive
+	git submodule update --init lib/pico-sdk
+	cd lib/pico-sdk && git submodule update --init lib/tinyusb
+	cd lib/pico-sdk/lib/tinyusb && git rm -rf hw/mcu lib tools --ignore-unmatch -q
 	git submodule update --init --recursive --progress
 
 # Generate the version.h file
