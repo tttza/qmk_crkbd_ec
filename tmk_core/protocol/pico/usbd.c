@@ -33,6 +33,8 @@
 #include "device/usbd_pvt.h"
 #include "device/dcd.h"
 
+#include "usb_host_os_identifier.h"
+
 //--------------------------------------------------------------------+
 // USBD Configuration
 //--------------------------------------------------------------------+
@@ -688,7 +690,8 @@ static bool process_control_request(uint8_t rhport, tusb_control_request_t const
           dcd_set_address(rhport, (uint8_t) p_request->wValue);
           // skip tud_control_status()
           _usbd_dev.addressed = 1;
-        break;
+          reset_usb_host_os_identity();
+          break;
 
         case TUSB_REQ_GET_CONFIGURATION:
         {
@@ -992,6 +995,8 @@ static bool process_get_descriptor(uint8_t rhport, tusb_control_request_t const 
 
       uint16_t len = sizeof(tusb_desc_device_t);
 
+      set_usb_host_os_identity_device_req_len(((tusb_control_request_t*)p_request)->wLength);
+
       // Only send up to EP0 Packet Size if not addressed and host requested more data
       // that device descriptor has.
       // This only happens with the very first get device descriptor and EP0 size = 8 or 16.
@@ -1045,6 +1050,11 @@ static bool process_get_descriptor(uint8_t rhport, tusb_control_request_t const 
 
       // Use offsetof to avoid pointer to the odd/misaligned address
       uint16_t const total_len = tu_le16toh( tu_unaligned_read16((uint8_t*) desc_config + offsetof(tusb_desc_configuration_t, wTotalLength)) );
+
+      if (desc_type == TUSB_DESC_CONFIGURATION) {
+          set_usb_host_os_identity_config_req_len(
+              ((tusb_control_request_t*)p_request)->wLength);
+      }
 
       return tud_control_xfer(rhport, p_request, (void*) desc_config, total_len);
     }

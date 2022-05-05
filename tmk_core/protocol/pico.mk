@@ -13,6 +13,7 @@ SRC += $(PROTOCOL_DIR)/iusb.c
 SRC += $(PROTOCOL_DIR)/pio_manager.c
 SRC += $(PROTOCOL_DIR)/usb_util.c
 SRC += $(PROTOCOL_DIR)/usbd.c
+SRC += $(PROTOCOL_DIR)/usb_host_os_identifier.c
 
 CFLAGS += -DPROTOCOL_PICO
 CFLAGS += -DGPIO_INPUT_PIN_DELAY=100
