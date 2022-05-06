@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 typedef enum {
     OS_TYPE_UNKNOWN,
     OS_TYPE_WIN,
