@@ -37,8 +37,6 @@
 
 #include "pico/stdio/driver.h"
 #include "hardware/watchdog.h"
-#include "hardware/structs/watchdog.h"
-#include "bsp/board.h"
 #include "tusb.h"
 
 void platform_setup(void);
@@ -87,33 +85,18 @@ void pico_cdc_disable_printf(void) {
     stdio_set_driver_enabled(&stdio_driver, false);
 }
 
-/*------------- MAIN -------------*/
-int main(void) {
-    if (watchdog_caused_reboot() && watchdog_hw->scratch[0] == 0x2040dead) {
-        bootloader_jump();
-    }
-    watchdog_enable(8000, 1);
-    watchdog_hw->scratch[0] = 0x2040dead;
-
-    board_init();
-    platform_setup();
+void protocol_setup(void) {
     tusb_init();
-
     pico_cdc_enable_printf();
-
     EEPROM_Init();
+}
 
-    qmk_init();
+void protocol_init(void) { qmk_init(); }
 
-    while (1) {
-        tud_task();  // tinyusb device task
-
-        qmk_task();
-
-        watchdog_update();
-    }
-
-    return 0;
+void protocol_task(void) {
+    tud_task();
+    qmk_task();
+    watchdog_update();
 }
 
 //--------------------------------------------------------------------+
