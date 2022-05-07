@@ -10,6 +10,7 @@ typedef enum {
     OS_TYPE_WIN,
     OS_TYPE_MAC,
     OS_TYPE_LINUX,
+    OS_TYPE_MAX,
 } OS_TYPE;
 
 OS_TYPE get_usb_host_os_type(void);
