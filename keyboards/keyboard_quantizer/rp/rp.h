@@ -16,6 +16,9 @@
 
 #pragma once
 
+#include <stdint.h>
+#include "keycode.h"
+
 #define KQ_PIN_CHRST 25
 #define KQ_PIN_CHBOOT 24
 #define KQ_PIN_UART_TX 16
@@ -32,9 +35,14 @@ int  send_led_cmd(uint8_t led);
 typedef union {
     uint32_t raw;
     struct {
-        uint8_t override_mode;
+        uint8_t os_eeconfig : 1;
+        uint8_t override_mode : 2;
+        uint8_t layer_to_combo : 1;
+        uint8_t tapping_term_20ms : 4;  // tapter+=20*x+60 (x>1)
+        uint8_t parser_type : 1;
     };
 } keyboard_config_t;
+extern keyboard_config_t keyboard_config;
 
 enum kb_keycodes {
     DISABLE_KEY_OVERRIDES = KC_FN0,

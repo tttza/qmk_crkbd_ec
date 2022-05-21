@@ -17,3 +17,5 @@
 #pragma once
 
 // place overrides here
+#undef QUANTIZER_REPORT_PARSER
+#define QUANTIZER_REPORT_PARSER REPORT_PARSER_USER

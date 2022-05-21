@@ -23,11 +23,21 @@
 
 #include "quantum.h"
 #include "debug.h"
+#include "process_combo.h"
+#include "via.h"
+#include "eeprom.h"
+
+#include "host_os_eeconfig.h"
+#include "use_layer_as_combo_config.h"
 
 #include "pico_cdc.h"
 #include "hardware/uart.h"
 #include "hardware/irq.h"
+#include "hardware/resets.h"
 #include "cdc_device.h"
+
+#include "RP2040.h"
+#include "core_cm0plus.h"
 
 #define LEN(x) (sizeof(x) / sizeof(x[0]))
 
@@ -146,7 +156,7 @@ void activate_ch55x_bootloader(void) {
     init_uart();
 }
 
-void pico_cdc_receive_cb(uint8_t const* buf, uint32_t cnt) {
+void pico_cdc_receive_cb(uint8_t const *buf, uint32_t cnt) {
     if (ch559_update_mode) {
         uart_write_blocking(KQ_UART, buf, cnt);
     } else if (cnt > 0) {
@@ -181,7 +191,17 @@ void pico_cdc_change_baudrate_cb(uint32_t baudrate) {
     }
 }
 
-void keyboard_post_init_kb_rev(void) { debug_enable = false; }
+void keyboard_post_init_kb_rev(void) {
+    debug_enable = false;
+
+    if (keyboard_config.layer_to_combo) {
+        convert_layer_to_combo();
+    } else {
+        combo_disable();
+    }
+
+    keyboard_post_init_user();
+}
 
 void dynamic_keymap_reset() {
     for (int idx = 0; idx < DYNAMIC_KEYMAP_LAYER_COUNT * MATRIX_COLS_DEFAULT *
@@ -212,22 +232,36 @@ void dynamic_keymap_reset() {
     }
 }
 
-uint8_t  encoder_modifier                = 0;
-uint16_t encoder_modifier_pressed_ms     = 0;
-bool     is_encoder_action               = false;
+uint8_t  encoder_modifier            = 0;
+uint16_t encoder_modifier_pressed_ms = 0;
+bool     is_encoder_action           = false;
+int      reset_flag                  = 0;
 
 #ifndef ENCODER_MODIFIER_TIMEOUT_MS
 #    define ENCODER_MODIFIER_TIMEOUT_MS 500
 #endif
 
+void on_host_os_eeconfig_update(void) {
+    keyboard_config.raw = eeconfig_read_kb();
+    set_key_override(keyboard_config.override_mode);
+}
+
 void eeconfig_init_kb(void) {
+    if (keyboard_config.os_eeconfig) {
+        host_os_eeconfig_init();
+    }
+
     keyboard_config.raw = 0;
     eeconfig_update_kb(keyboard_config.raw);
+
+    eeconfig_init_user();
 }
 
 void matrix_init_kb(void) {
     keyboard_config.raw = eeconfig_read_kb();
     set_key_override(keyboard_config.override_mode);
+
+    matrix_init_user();
 }
 
 void matrix_scan_kb(void) {
@@ -236,10 +270,24 @@ void matrix_scan_kb(void) {
         unregister_mods(encoder_modifier);
         encoder_modifier = 0;
     }
+
+    if (keyboard_config.os_eeconfig) {
+        host_os_eeconfig_update(get_usb_host_os_type());
+    }
+
+    if (reset_flag > 0) {
+        if (--reset_flag == 0) {
+            // Reset USB to detect host os properly after reset
+            reset_block(RESETS_RESET_USBCTRL_BITS);
+            // Reset MCU
+            __NVIC_SystemReset();
+        }
+    }
+
     matrix_scan_user();
 }
 
-bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
+bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     if (encoder_modifier != 0 && !is_encoder_action) {
         unregister_mods(encoder_modifier);
         encoder_modifier = 0;
@@ -278,7 +326,8 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
                 return true;
             }
             case ENABLE_US_KEY_ON_JP_OS_OVERRIDE: {
-                println("Perform as an US keyboard on the OS configured for JP");
+                println(
+                    "Perform as an US keyboard on the OS configured for JP");
                 keyboard_config.override_mode = US_KEY_ON_JP_OS_OVERRIDE;
                 set_key_override(US_KEY_ON_JP_OS_OVERRIDE);
                 eeconfig_update_kb(keyboard_config.raw);
@@ -291,8 +340,83 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
                 eeconfig_update_kb(keyboard_config.raw);
                 return false;
             } break;
+            case CMB_ON:
+            case CMB_OFF:
+            case CMB_TOG: {
+                if (keyboard_config.layer_to_combo) {
+                    convert_layer_to_combo();
+                }
+                return true;
+            } break;
         }
     }
 
     return process_record_user(keycode, record);
+}
+
+enum via_keyboard_value_id_kb { id_keyboard_quantizer = 0x99 };
+
+enum via_kq_value_id_kb {
+    id_config_ver = 0x01,
+    id_bootloader,
+    id_reset,
+    id_eeprom,  // read/write eeprom
+    id_host_os,      // get os
+};
+
+static void raw_hid_get_kb(uint8_t *data, uint8_t length) {
+    uint8_t *command_id   = &(data[0]);
+    uint8_t *command_data = &(data[1]);
+
+    switch (*command_id) {
+        case id_config_ver: {
+            command_data[0] = 0x01;
+        } break;
+        case id_eeprom: {
+            uint32_t offset = (command_data[0] << 8) | command_data[1];
+            uint16_t size   = command_data[2];
+            size            = size < (length - 4) ? size : (length - 4);
+            eeprom_read_block(&command_data[3], (const void *)offset, size);
+        } break;
+        case id_host_os: {
+            command_data[0] = get_usb_host_os_type();
+        }
+    }
+}
+
+static void raw_hid_set_kb(uint8_t *data, uint8_t length) {
+    uint8_t *command_id   = &(data[0]);
+    uint8_t *command_data = &(data[1]);
+
+    switch (*command_id) {
+        case id_bootloader: {
+            bootloader_jump();
+        } break;
+        case id_reset: {
+            reset_flag = 100;
+        } break;
+        case id_eeprom: {
+            uint32_t offset = (command_data[0] << 8) | command_data[1];
+            uint16_t size   = command_data[2];
+            size            = size < (length - 4) ? size : (length - 4);
+            eeprom_update_block(&command_data[3], (void *)offset, size);
+        } break;
+    }
+}
+
+void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
+    uint8_t *command_id   = &(data[0]);
+    uint8_t *command_data = &(data[1]);
+    switch (*command_id) {
+        case id_get_keyboard_value: {
+            if (command_data[0] == id_keyboard_quantizer) {
+                raw_hid_get_kb(data + 2, length - 2);
+            }
+        } break;
+        case id_set_keyboard_value: {
+            if (command_data[0] == id_keyboard_quantizer) {
+                raw_hid_set_kb(data + 2, length - 2);
+            }
+        } break;
+    }
 }

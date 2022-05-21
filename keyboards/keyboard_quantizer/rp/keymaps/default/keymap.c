@@ -19,9 +19,13 @@
 #include "pointing_device.h"
 #include "debug.h"
 
+#include "rp.h"
 #include "report_parser.h"
 
-#define GESTURE_MOVE_THRESHOLD 50
+#include "user_config.h"
+
+user_config_t user_config;
+#define GESTURE_MOVE_THRESHOLD_DEFAULT 50
 
 enum custom_keycodes {
     SPD_1 = SAFE_RANGE,
@@ -56,7 +60,7 @@ static int16_t wheel_move_h       = 0;
 gesture_id_t recognize_gesture(int16_t x, int16_t y) {
     gesture_id_t gesture_id = 0;
 
-    if (abs(x) + abs(y) < GESTURE_MOVE_THRESHOLD) {
+    if (abs(x) + abs(y) < user_config.gesture_threshold * 10) {
         gesture_id = GESTURE_NONE;
     } else if (x >= 0 && y >= 0) {
         gesture_id = GESTURE_DOWN_RIGHT;
@@ -204,7 +208,11 @@ uint16_t get_tapping_term(uint16_t keycode, keyrecord_t* record) {
         }
     }
 
-    return TAPPING_TERM;
+    if (keyboard_config.tapping_term_20ms == 0) {
+        return TAPPING_TERM;
+    } else {
+        return keyboard_config.tapping_term_20ms * 20 + 40;
+    }
 }
 
 void post_process_record_user(uint16_t keycode, keyrecord_t* record) {
@@ -320,5 +328,17 @@ void mouse_report_hook(mouse_parse_result_t const* report) {
     if (gesture_wait) {
         gesture_move_x += report->x;
         gesture_move_y += report->y;
+    }
+}
+
+void eeconfig_init_user(void) {
+    user_config.raw = 0;
+    eeconfig_update_user(user_config.raw);
+}
+
+void keyboard_post_init_user(void) {
+    user_config.raw = eeconfig_read_user();
+    if (user_config.gesture_threshold == 0) {
+        user_config.gesture_threshold = GESTURE_MOVE_THRESHOLD_DEFAULT / 10;
     }
 }

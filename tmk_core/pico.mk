@@ -129,6 +129,8 @@ CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/hw
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/class/hid
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/class/cdc
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/include
+CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/cmsis/stub/CMSIS/Core/Include
+CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/cmsis/stub/CMSIS/Device/RaspberryPi/RP2040/Include
 CFLAGS += -mcpu=cortex-m0plus
 CFLAGS += -mthumb
 CFLAGS += -O0 -g3

@@ -2,6 +2,7 @@
 #pragma once
 
 #define DYNAMIC_KEYMAP_LAYER_COUNT 10
+#define VIA_EEPROM_MAGIC_ADDR (EECONFIG_SIZE * 5 + 1)
 
 #undef PRODUCT_ID
 #define PRODUCT_ID 0x999b
