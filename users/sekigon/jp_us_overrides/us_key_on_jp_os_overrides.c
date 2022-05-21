@@ -3,6 +3,7 @@
 
 #include "keymap_jp.h"
 #include "dynamic_key_override.h"
+#include "usb_host_os_identifier.h"
 
 // Perform as a US keyboard on JIS systems
 static const key_override_t *us_key_on_jp_os_overrides[] = {
@@ -46,7 +47,7 @@ void register_us_key_on_jp_os_overrides(void) {
         register_override(us_key_on_jp_os_overrides[idx]);
     }
 
-    if (keymap_config.swap_lalt_lgui) {
+    if (get_usb_host_os_type() == OS_TYPE_MAC) {
         register_override(grv_override_mac);
     } else {
         register_override(grv_override_win);

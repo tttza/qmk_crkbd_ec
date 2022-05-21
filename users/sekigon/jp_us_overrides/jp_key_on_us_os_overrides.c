@@ -5,6 +5,7 @@
 #include "keycode_config.h"
 #include "quantum_keycodes.h"
 #include "dynamic_key_override.h"
+#include "usb_host_os_identifier.h"
 
 // Perform as a JP keyboard on US systems
 static const key_override_t *jp_key_on_us_os_overrides[] = {
@@ -46,7 +47,7 @@ void register_jp_key_on_us_os_overrides(void) {
         register_override(jp_key_on_us_os_overrides[idx]);
     }
 
-    if (keymap_config.swap_lalt_lgui) {
+    if (get_usb_host_os_type() == OS_TYPE_MAC) {
         register_override(grv_override_mac);
     } else {
         register_override(grv_override_win);
