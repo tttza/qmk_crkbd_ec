@@ -1,3 +1,5 @@
+// Copyright 2022 sekigon-gonnoc
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "host_os_eeconfig.h"
 #include "usb_host_os_identifier.h"
@@ -20,7 +22,7 @@ extern rgblight_config_t rgblight_config;
 #endif
 
 #ifdef VIA_ENABLE
-_Static_assert(EECONFIG_USER_SIZE * OS_TYPE_MAX < VIA_EEPROM_MAGIC_ADDR,
+_Static_assert(EECONFIG_USER_SIZE*(OS_TYPE_MAX + 1) < VIA_EEPROM_MAGIC_ADDR,
                "Set VIA_EEPROM_MAGIC_ADDR larger");
 #endif
 
@@ -31,11 +33,10 @@ static OS_TYPE current_os = OS_TYPE_UNKNOWN;
 static int os_type_to_offset_idx(OS_TYPE os) {
     switch (os) {
         case OS_TYPE_UNKNOWN:
-            return 0;
         case OS_TYPE_WIN:
         case OS_TYPE_MAC:
         case OS_TYPE_LINUX:
-            return (EECONFIG_USER_SIZE * os);
+            return (EECONFIG_USER_SIZE * (os + 1));
         default:
             return 0;
     }
@@ -57,9 +58,9 @@ static void load_os_eeconfig(OS_TYPE os) {
 }
 
 void host_os_eeconfig_init(void) {
-    mirror_os_eeconfig(OS_TYPE_WIN);
-    mirror_os_eeconfig(OS_TYPE_MAC);
-    mirror_os_eeconfig(OS_TYPE_LINUX);
+    for (int os = 0; os < OS_TYPE_MAX; os++) {
+        mirror_os_eeconfig(os);
+    }
 }
 
 void host_os_eeconfig_update(OS_TYPE os) {
