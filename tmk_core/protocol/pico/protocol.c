@@ -117,6 +117,9 @@ void tud_suspend_cb(bool remote_wakeup_en) { (void)remote_wakeup_en; }
 // Invoked when usb bus is resumed
 void tud_resume_cb(void) {}
 
+__attribute__((weak)) void pico_cdc_on_connect(void) {}
+__attribute__((weak)) void pico_cdc_on_disconnect(void) {}
+
 // Invoked when cdc when line state changed e.g connected/disconnected
 void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts) {
     (void)itf;
@@ -124,9 +127,9 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts) {
 
     // TODO set some indicator
     if (dtr) {
-        // Terminal connected
+        pico_cdc_on_connect();
     } else {
-        // Terminal disconnected
+        pico_cdc_on_disconnect();
     }
 }
 
@@ -142,10 +145,19 @@ void tud_cdc_line_coding_cb(uint8_t                  itf,
     pico_cdc_change_baudrate_cb(p_line_coding->bit_rate);
 }
 
+__attribute__((weak)) bool pico_cdc_receive_kb(uint8_t const* buf,
+                                               uint32_t       cnt) {
+    return true;
+}
+
 __attribute__((weak)) void pico_cdc_receive_cb(uint8_t const* buf,
                                                uint32_t       cnt) {
     tud_cdc_write(buf, cnt);
     tud_cdc_write_flush();
+
+    if (!pico_cdc_receive_kb(buf, cnt)) {
+        return;
+    }
 
     if (buf[0] == 'b') {
         bootloader_jump();
