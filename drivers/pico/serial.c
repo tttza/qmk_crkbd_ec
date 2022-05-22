@@ -229,9 +229,15 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
     gpio_set_irq_enabled_with_callback(SOFT_SERIAL_PIN, GPIO_IRQ_EDGE_FALL,
                                        false, interrupt_handler);
 
-    while (!serial_read_pin()) {
+    volatile uint64_t timeout = time_us_64() + 10000;
+    while (!serial_read_pin() && time_us_64() < timeout) {
         continue;
     }
+    if (time_us_64() >= timeout) {
+        restore_interrupts(interrupt_status);
+        return;
+    }
+
     serial_delay_blip();
 
     sync_send();
@@ -244,8 +250,13 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
     split_transaction_desc_t *trans;
 
     serial_input();
-    while (!serial_read_pin()) {
+    timeout = time_us_64() + 10000;
+    while (!serial_read_pin() && time_us_64() < timeout) {
         continue;
+    }
+    if (time_us_64() >= timeout) {
+        restore_interrupts(interrupt_status);
+        return;
     }
 
     // activate receive
