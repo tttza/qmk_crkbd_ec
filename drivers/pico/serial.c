@@ -147,15 +147,6 @@ static int __no_inline_not_in_flash_func(sync_recv)(void) {
     serial_input();
 
     volatile uint64_t timeout = time_us_64() + 10000;
-    while (!serial_read_pin() && time_us_64() < timeout) {
-        // tight_loop_contents();
-    }
-    if (time_us_64() >= timeout) {
-        // dprintf("serial::NO_RESPONSE0\n");
-        return -1;
-    }
-
-    timeout = time_us_64() + 10000;
     while (serial_read_pin() && time_us_64() < timeout) {
         // tight_loop_contents();
     }
