@@ -234,6 +234,9 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
         continue;
     }
     if (time_us_64() >= timeout) {
+        serial_input();
+        gpio_set_irq_enabled_with_callback(SOFT_SERIAL_PIN, GPIO_IRQ_EDGE_FALL,
+                                           true, interrupt_handler);
         restore_interrupts(interrupt_status);
         return;
     }
@@ -255,6 +258,9 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
         continue;
     }
     if (time_us_64() >= timeout) {
+        serial_input();
+        gpio_set_irq_enabled_with_callback(SOFT_SERIAL_PIN, GPIO_IRQ_EDGE_FALL,
+                                           true, interrupt_handler);
         restore_interrupts(interrupt_status);
         return;
     }
