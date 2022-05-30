@@ -12,6 +12,10 @@
 
 #include "pico/stdlib.h"
 
+#ifndef WS2812_RES
+#    define WS2812_RES (1000 * WS2812_TRST_US)
+#endif
+
 static PIO pio = pio0;
 static int sm  = 0;
 
@@ -53,4 +57,6 @@ void ws2812_setleds(LED_TYPE *ledarray, uint16_t number_of_leds) {
     }
 
     __interrupt_enable__(NULL);
+
+    busy_wait_us(WS2812_RES / 1000);
 }
