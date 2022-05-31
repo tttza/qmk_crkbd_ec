@@ -58,5 +58,8 @@ void ws2812_setleds(LED_TYPE *ledarray, uint16_t number_of_leds) {
 
     __interrupt_enable__(NULL);
 
+    while (!pio_sm_is_tx_fifo_empty(pio, sm)) {
+        continue;
+    }
     busy_wait_us(WS2812_RES / 1000);
 }
