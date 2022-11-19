@@ -1,4 +1,3 @@
-
 CUSTOM_MATRIX = lite
 SRC += analog.c ec_switch_matrix.c matrix.c
 CFLAGS += -DPLATFORM_PICO=1
