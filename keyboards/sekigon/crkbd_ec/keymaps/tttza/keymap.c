@@ -30,6 +30,11 @@ extern rgb_config_t rgb_matrix_config;
 #include "twpair_on_jis.h"
 #include "custom_keymap.h"
 
+
+#ifdef CONSOLE_ENABLE
+  #include "print.h"
+#endif 
+
 user_config_t user_config = {};
 
 enum layer_number {
@@ -56,7 +61,7 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       KC_LSFT,    KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                         KC_N,    KC_M, KC_COMM,  KC_DOT, KC_SLSH,  KC_ESC,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                  KC_LGUI,   LOWER,  LSFT_T(KC_SPC),  CTL_T(KC_ENT),   RAISE, KC_RALT
+                                  KC_LGUI,  LOWER, LSFT_T(KC_SPC),  CTL_T(KC_ENT), RAISE, KC_RALT
                                       //`--------------------------'  `--------------------------'
 
   ),
@@ -91,7 +96,7 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       RGB_TOG, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX,                      XXXXXXX,CK_EnJIS, KC_MUTE, KC_VOLU, KC_VOLD, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-      RGB_MOD, RGB_HUD, RGB_SAD, RGB_VAD, XXXXXXX, XXXXXXX,                      XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+      RGB_MOD, RGB_HUD, RGB_SAD, RGB_VAD, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                                           KC_LGUI, _______,  KC_SPC,     KC_ENT, _______, KC_RALT
                                       //`--------------------------'  `--------------------------'
@@ -100,16 +105,16 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 // clang-format on
 
 layer_state_t layer_state_set_user(layer_state_t state) {
-    uint8_t layer = get_highest_layer(state);
+    state = update_tri_layer_state(state, _RAISE, _LOWER, _ADJUST);
 
-    if (layer < DYNAMIC_KEYMAP_LAYER_COUNT) {
+    if (state < DYNAMIC_KEYMAP_LAYER_COUNT) {
 #if defined(RGBLIGHT_ENABLE)
-        rgblight_update_dword(eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * layer)));
+        rgblight_update_dword(eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state)));
 #elif defined(RGB_MATRIX_ENABLE)
-        rgb_matrix_config.raw = eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * layer));
+        rgb_matrix_config.raw = eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state));
 #endif
     }
-
+    
     return state;
 }
 
@@ -148,10 +153,7 @@ void eeconfig_init_user(void) {
 }
 
 void keyboard_post_init_user(void) {
-    layer_state_set_user(layer_state);
-    if (is_keyboard_master()) {
-        load_persistent();
-    }
+    // layer_state_set_user(layer_state);
 }
 
 void set_keyboard_lang_to_jis(bool set_jis){
