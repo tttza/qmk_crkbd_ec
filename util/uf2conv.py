@@ -247,6 +247,7 @@ def main():
     else:
         try:
             familyid = int(args.family, 0)
+            familyid = int("0xe48bff56", 0) ## familyid converted from args.family somehow doesn't write id to file. Set it manually.
         except ValueError:
             error("Family ID needs to be a number or one of: " + ", ".join(families.keys()))
 
