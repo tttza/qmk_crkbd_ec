@@ -27,6 +27,7 @@ extern rgb_config_t rgb_matrix_config;
 #endif
 
 #include "keymap_extras/keymap_jp.h"
+#include "select_word.h"
 #include "twpair_on_jis.h"
 #include "custom_keymap.h"
 
@@ -48,7 +49,8 @@ enum custom_keycodes {
   CK_EnJIS = SAFE_RANGE,
   CK_EnUS,
   LOWER,
-  RAISE
+  RAISE,
+  WSEL
 };
 
 // clang-format off
@@ -68,18 +70,6 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 
   [_LOWER] = LAYOUT(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
-       KC_TAB,    KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                         KC_6,    KC_7,    KC_8,    KC_9,    KC_0, KC_BSPC,
-  //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-      KC_LCTL, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                      KC_LEFT, KC_DOWN,   KC_UP,KC_RIGHT, XXXXXXX, XXXXXXX,
-  //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-      KC_LSFT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                      XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
-  //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
-                                          KC_LGUI, _______,  KC_SPC,     KC_ENT, _______, KC_RALT
-                                      //`--------------------------'  `--------------------------'
-  ),
-
-  [_RAISE] = LAYOUT(
-  //,-----------------------------------------------------.                    ,-----------------------------------------------------.
        KC_TAB, KC_EXLM,   KC_AT, KC_HASH,  KC_DLR, KC_PERC,                      KC_CIRC, KC_AMPR, KC_ASTR, KC_LPRN, KC_RPRN, KC_BSPC,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
       KC_LCTL, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                      KC_MINS,  KC_EQL, KC_LBRC, KC_RBRC, KC_BSLS,  KC_GRV,
@@ -89,6 +79,20 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
                                           KC_LGUI, _______, KC_SPC,     KC_ENT, _______, KC_RALT
                                       //`--------------------------'  `--------------------------'
   ),
+
+  [_RAISE] = LAYOUT(
+  //,-----------------------------------------------------.                    ,-----------------------------------------------------.
+       KC_TAB,    KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                         KC_6,    KC_7,    KC_8,    KC_9,    KC_0, KC_BSPC,
+  //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
+      KC_LCTL, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                      KC_LEFT, KC_DOWN,   KC_UP,KC_RIGHT, XXXXXXX, XXXXXXX,
+  //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
+      KC_LSFT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                      XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+  //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
+                                          KC_LGUI, _______,  KC_SPC,     KC_ENT, _______, WSEL 
+                                      //`--------------------------'  `--------------------------'
+  ),
+
+
 
   [_ADJUST] = LAYOUT(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
@@ -107,13 +111,13 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 layer_state_t layer_state_set_user(layer_state_t state) {
     state = update_tri_layer_state(state, _RAISE, _LOWER, _ADJUST);
 
-    if (state < DYNAMIC_KEYMAP_LAYER_COUNT) {
-#if defined(RGBLIGHT_ENABLE)
-        rgblight_update_dword(eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state)));
-#elif defined(RGB_MATRIX_ENABLE)
-        rgb_matrix_config.raw = eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state));
-#endif
-    }
+//     if (state < DYNAMIC_KEYMAP_LAYER_COUNT) {
+// #if defined(RGBLIGHT_ENABLE)
+//         rgblight_update_dword(eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state)));
+// #elif defined(RGB_MATRIX_ENABLE)
+//         rgb_matrix_config.raw = eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state));
+// #endif
+//     }
     
     return state;
 }
@@ -166,6 +170,17 @@ void set_keyboard_lang_to_jis(bool set_jis){
     save_persistent();
 }
 
+// const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt) {
+// 	if (record->event.pressed) {
+// 		switch(id) {
+// 			case 0:
+// 			    return MACRO(D(KC_LGUI), T(KC_L), U(KC_LGUI), END);
+// 			case 1:
+// 				return MACRO(D(KC_LGUI), D(KC_LSFT), T(KC_S), U(KC_LSFT), U(KC_LGUI), END);
+// 		}
+// 	}
+// 	return MACRO_NONE;
+// };
 
 // ref: https://gist.github.com/okapies/5d13a174cbb13ce34dbd9faede9d0b71#file-keymap-c-L99-L164
 static bool lower_pressed = false;
@@ -216,7 +231,7 @@ bool process_raise(uint16_t keycode, keyrecord_t *record){
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-
+  if (!process_select_word(keycode, record, WSEL)) { return false; }
   switch (keycode) {
     case CK_EnJIS:
         set_keyboard_lang_to_jis(true);
