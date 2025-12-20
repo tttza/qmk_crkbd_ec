@@ -153,11 +153,13 @@ void save_persistent(void) {
 }
 
 void eeconfig_init_user(void) {
+    set_keyboard_lang_to_jis(true);
     save_persistent();
 }
 
 void keyboard_post_init_user(void) {
     // layer_state_set_user(layer_state);
+    load_persistent();
 }
 
 void set_keyboard_lang_to_jis(bool set_jis){

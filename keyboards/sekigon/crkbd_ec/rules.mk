@@ -11,6 +11,7 @@ RGBLIGHT_ENABLE = no
 RGB_MATRIX_ENABLE = yes
 RGB_MATRIX_DRIVER = WS2812
 
+
 # Build Options
 #   change yes to no to disable
 #
@@ -21,7 +22,7 @@ EXTRAKEY_ENABLE = yes       # Audio control and System control
 CONSOLE_ENABLE = yes        # Console for debug
 COMMAND_ENABLE = no         # Commands for debug and configuration
 # Do not enable SLEEP_LED_ENABLE. it uses the same timer as BACKLIGHT_ENABLE
-SLEEP_LED_ENABLE = no       # Breathing sleep LED during USB suspend
+SLEEP_LED_ENABLE = no # Breathing sleep LED during USB suspend
 # if this doesn't work, see here: https://github.com/tmk/tmk_keyboard/wiki/FAQ#nkro-doesnt-work
 NKRO_ENABLE = no            # USB Nkey Rollover
 BACKLIGHT_ENABLE = no       # Enable keyboard backlight functionality

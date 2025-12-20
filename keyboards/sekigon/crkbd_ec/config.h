@@ -102,14 +102,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // keyboard responsiveness) #   define RGB_MATRIX_LED_FLUSH_LIMIT 16 // limits
 // in milliseconds how frequently an animation will update the LEDs. 16 (16ms)
 // is equivalent to limiting to 60fps (increases keyboard responsiveness)
-#    define RGB_MATRIX_MAXIMUM_BRIGHTNESS \
-        150  // limits maximum brightness of LEDs to 150 out of 255. Higher may
+#    define RGB_MATRIX_MAXIMUM_BRIGHTNESS 150
+             // limits maximum brightness of LEDs to 150 out of 255. Higher may
              // cause the controller to crash.
 #    define RGB_MATRIX_HUE_STEP 8
 #    define RGB_MATRIX_SAT_STEP 8
 #    define RGB_MATRIX_VAL_STEP 8
 #    define RGB_MATRIX_SPD_STEP 10
 #endif
+
+// #define WS2812_TIMING 1300
+// #define WS2812_T0H 320
+// #define WS2812_T1H 640
+// #define WS2812_TRST_US 200
+// #define WS2812_BYTE_ORDER WS2812_BYTE_ORDER_RGB
+
+#define SPLIT_USB_TIMEOUT 3000
+#define SPLIT_USB_TIMEOUT_POLL 25
+#define SPLIT_WATCHDOG_ENABLE
+#define SPLIT_WATCHDOG_TIMEOUT 6000
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is not needed */
 #define DEBOUNCE 5
