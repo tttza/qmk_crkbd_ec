@@ -25,16 +25,17 @@
     },
     "python.formatting.provider": "yapf",
     "[json]": {
-	    "editor.formatOnSave": false
+        "editor.formatOnSave": false
     },
     "C_Cpp.files.exclude": {
         "**/.vscode": true,
         "**/.clangd": true,
         "**/.cache": true,
         "**/.git": true,
-        "**/.build": true,
+        "**/.build": true
     },
     "editor.codeActionsOnSave": {
-        "source.fixAll.tslint": false
-    }
+        "source.fixAll.tslint": "never"
+    },
+    "git.repositoryScanMaxDepth": 0
 }
