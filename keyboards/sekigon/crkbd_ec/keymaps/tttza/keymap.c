@@ -20,9 +20,9 @@
 #include "eeprom.h"
 
 #if defined(RGBLIGHT_ENABLE)
-#include "rgblight.h"
+#    include "rgblight.h"
 #elif defined(RGB_MATRIX_ENABLE)
-#include "rgb_matrix.h"
+#    include "rgb_matrix.h"
 extern rgb_config_t rgb_matrix_config;
 #endif
 
@@ -31,27 +31,49 @@ extern rgb_config_t rgb_matrix_config;
 #include "twpair_on_jis.h"
 #include "custom_keymap.h"
 
-
 #ifdef CONSOLE_ENABLE
-  #include "print.h"
-#endif 
+#    include "print.h"
+#endif
 
 user_config_t user_config = {};
 
 enum layer_number {
-  _QWERTY = 0,
-  _LOWER,
-  _RAISE,
-  _ADJUST,
+    _QWERTY = 0,
+    _LOWER,
+    _RAISE,
+    _ADJUST,
 };
 
-enum custom_keycodes {
-  CK_EnJIS = SAFE_RANGE,
-  CK_EnUS,
-  LOWER,
-  RAISE,
-  WSEL
-};
+enum custom_keycodes { CK_EnJIS = SAFE_RANGE, CK_EnUS, LOWER, RAISE, WSEL };
+
+// マクロ再生時に物理キー入力と同じくUS/JISを切り替えたまま記号が出るようにする
+static uint16_t lang_keycode(uint16_t keycode) {
+    if (user_config.jis) {
+        return us_to_jis_keycode(keycode);
+    }
+    return keycode;
+}
+
+void tap_code16_lang(uint16_t keycode) { tap_code16(lang_keycode(keycode)); }
+
+// send_string経由のマクロもUS/JIS変換を通す
+void send_string_apply_keymap(uint8_t *keycode, bool *is_shifted,
+                              bool *is_altgred) {
+    (void)is_altgred;
+
+    if (!user_config.jis) return;
+
+    uint16_t code = *keycode;
+    if (*is_shifted) {
+        code |= QK_LSFT;
+    }
+
+    uint16_t translated = us_to_jis_keycode(code);
+
+    // 抽出した変換結果からシフトを再構成
+    *is_shifted = (translated & QK_LSFT) || (translated & QK_RSFT);
+    *keycode    = translated & 0xFF;
+}
 
 // clang-format off
 const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
@@ -111,18 +133,18 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 layer_state_t layer_state_set_user(layer_state_t state) {
     state = update_tri_layer_state(state, _RAISE, _LOWER, _ADJUST);
 
-//     if (state < DYNAMIC_KEYMAP_LAYER_COUNT) {
-// #if defined(RGBLIGHT_ENABLE)
-//         rgblight_update_dword(eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state)));
-// #elif defined(RGB_MATRIX_ENABLE)
-//         rgb_matrix_config.raw = eeprom_read_dword((const uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * state));
-// #endif
-//     }
-    
+    //     if (state < DYNAMIC_KEYMAP_LAYER_COUNT) {
+    // #if defined(RGBLIGHT_ENABLE)
+    //         rgblight_update_dword(eeprom_read_dword((const uint32_t
+    //         *)(VIA_RGBLIGHT_USER_ADDR + 4 * state)));
+    // #elif defined(RGB_MATRIX_ENABLE)
+    //         rgb_matrix_config.raw = eeprom_read_dword((const uint32_t
+    //         *)(VIA_RGBLIGHT_USER_ADDR + 4 * state));
+    // #endif
+    //     }
+
     return state;
 }
-
-
 
 static bool dprint_matrix = false;
 
@@ -144,13 +166,9 @@ void matrix_scan_user(void) {
     }
 }
 
-void load_persistent(void) {
-    user_config.raw = eeconfig_read_user();
-}
+void load_persistent(void) { user_config.raw = eeconfig_read_user(); }
 
-void save_persistent(void) {
-    eeconfig_update_user(user_config.raw);
-}
+void save_persistent(void) { eeconfig_update_user(user_config.raw); }
 
 void eeconfig_init_user(void) {
     set_keyboard_lang_to_jis(true);
@@ -162,9 +180,11 @@ void keyboard_post_init_user(void) {
     load_persistent();
 }
 
-void set_keyboard_lang_to_jis(bool set_jis){
-    if ( user_config.jis == set_jis){ return; }
-    if (set_jis){
+void set_keyboard_lang_to_jis(bool set_jis) {
+    if (user_config.jis == set_jis) {
+        return;
+    }
+    if (set_jis) {
         user_config.jis = 1;
     } else {
         user_config.jis = 0;
@@ -172,89 +192,95 @@ void set_keyboard_lang_to_jis(bool set_jis){
     save_persistent();
 }
 
-// const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt) {
-// 	if (record->event.pressed) {
-// 		switch(id) {
-// 			case 0:
-// 			    return MACRO(D(KC_LGUI), T(KC_L), U(KC_LGUI), END);
-// 			case 1:
-// 				return MACRO(D(KC_LGUI), D(KC_LSFT), T(KC_S), U(KC_LSFT), U(KC_LGUI), END);
+// const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
+// { 	if (record->event.pressed) { 		switch(id) { 			case 0:
+// return MACRO(D(KC_LGUI), T(KC_L), U(KC_LGUI), END); 			case 1:
+// return MACRO(D(KC_LGUI), D(KC_LSFT), T(KC_S), U(KC_LSFT), U(KC_LGUI), END);
 // 		}
 // 	}
 // 	return MACRO_NONE;
 // };
 
-// ref: https://gist.github.com/okapies/5d13a174cbb13ce34dbd9faede9d0b71#file-keymap-c-L99-L164
-static bool lower_pressed = false;
-static bool lower_cmb_pressed = false;
+// ref:
+// https://gist.github.com/okapies/5d13a174cbb13ce34dbd9faede9d0b71#file-keymap-c-L99-L164
+static bool     lower_pressed      = false;
+static bool     lower_cmb_pressed  = false;
 static uint16_t lower_pressed_time = 0;
-static bool raise_pressed = false;
-static bool raise_cmb_pressed = false;
+static bool     raise_pressed      = false;
+static bool     raise_cmb_pressed  = false;
 static uint16_t raise_pressed_time = 0;
-bool process_lower(uint16_t keycode, keyrecord_t *record){
-     if (record->event.pressed) {
-        lower_pressed = true;
-        lower_cmb_pressed = false;
+bool            process_lower(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        lower_pressed      = true;
+        lower_cmb_pressed  = false;
         lower_pressed_time = record->event.time;
 
         layer_on(_LOWER);
-      } else {
+    } else {
         layer_off(_LOWER);
 
-        if (!lower_cmb_pressed && lower_pressed && (TIMER_DIFF_16(record->event.time, lower_pressed_time) < TAPPING_TERM)) {
-          register_code(KC_MHEN);
-          unregister_code(KC_MHEN);
-        //   register_code(KC_LANG2); // for macOS
-        //   unregister_code(KC_LANG2);
+        if (!lower_cmb_pressed && lower_pressed &&
+            (TIMER_DIFF_16(record->event.time, lower_pressed_time) <
+             TAPPING_TERM)) {
+            register_code(KC_MHEN);
+            unregister_code(KC_MHEN);
+            //   register_code(KC_LANG2); // for macOS
+            //   unregister_code(KC_LANG2);
         }
         lower_pressed = false;
-      }
-      return false;
+    }
+    return false;
 }
-bool process_raise(uint16_t keycode, keyrecord_t *record){
-      if (record->event.pressed) {
-        raise_pressed = true;
-        raise_cmb_pressed = false;
+bool process_raise(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        raise_pressed      = true;
+        raise_cmb_pressed  = false;
         raise_pressed_time = record->event.time;
 
         layer_on(_RAISE);
-      } else {
+    } else {
         layer_off(_RAISE);
 
-        if (!raise_cmb_pressed && raise_pressed && (TIMER_DIFF_16(record->event.time, raise_pressed_time) < TAPPING_TERM)) {
-          register_code(KC_HENK);
-          unregister_code(KC_HENK);
-        //   register_code(KC_LANG1); // for macOS
-        //   unregister_code(KC_LANG1);
+        if (!raise_cmb_pressed && raise_pressed &&
+            (TIMER_DIFF_16(record->event.time, raise_pressed_time) <
+             TAPPING_TERM)) {
+            register_code(KC_HENK);
+            unregister_code(KC_HENK);
+            //   register_code(KC_LANG1); // for macOS
+            //   unregister_code(KC_LANG1);
         }
         raise_pressed = false;
-      }
-      return false;
+    }
+    return false;
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-  if (!process_select_word(keycode, record, WSEL)) { return false; }
-  switch (keycode) {
-    case CK_EnJIS:
-        set_keyboard_lang_to_jis(true);
+    if (!process_select_word(keycode, record, WSEL)) {
         return false;
-    case CK_EnUS:
-        set_keyboard_lang_to_jis(false);
-        return false;
-    case LOWER:
-        return process_lower(keycode, record);
-    case RAISE:
-        return process_raise(keycode, record);
-    default:
-      // NOTE: is redundant?
-      if (lower_pressed) { lower_cmb_pressed = true; }
-      if (raise_pressed) { raise_cmb_pressed = true; }
-      if (user_config.jis){
-          return twpair_on_jis(keycode, record);
-      } else {
-          return true;
-      }
-  }
-
-
- }
+    }
+    switch (keycode) {
+        case CK_EnJIS:
+            set_keyboard_lang_to_jis(true);
+            return false;
+        case CK_EnUS:
+            set_keyboard_lang_to_jis(false);
+            return false;
+        case LOWER:
+            return process_lower(keycode, record);
+        case RAISE:
+            return process_raise(keycode, record);
+        default:
+            // NOTE: is redundant?
+            if (lower_pressed) {
+                lower_cmb_pressed = true;
+            }
+            if (raise_pressed) {
+                raise_cmb_pressed = true;
+            }
+            if (user_config.jis) {
+                return twpair_on_jis(keycode, record);
+            } else {
+                return true;
+            }
+    }
+}

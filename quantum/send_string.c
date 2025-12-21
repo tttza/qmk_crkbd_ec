@@ -20,6 +20,15 @@
 
 #include "send_string.h"
 
+// Allow keyboards/keymaps to adjust keycode and modifiers per layout.
+__attribute__((weak)) void send_string_apply_keymap(uint8_t *keycode,
+                                                    bool    *is_shifted,
+                                                    bool    *is_altgred) {
+    (void)keycode;
+    (void)is_shifted;
+    (void)is_altgred;
+}
+
 #if defined(AUDIO_ENABLE) && defined(SENDSTRING_BELL)
 #    include "audio.h"
 #    ifndef BELL_SOUND
@@ -140,7 +149,8 @@ __attribute__((weak)) const uint8_t ascii_to_keycode_lut[128] PROGMEM = {
 // clang-format on
 
 // Note: we bit-pack in "reverse" order to optimize loading
-#define PGM_LOADBIT(mem, pos) ((pgm_read_byte(&((mem)[(pos) / 8])) >> ((pos) % 8)) & 0x01)
+#define PGM_LOADBIT(mem, pos) \
+    ((pgm_read_byte(&((mem)[(pos) / 8])) >> ((pos) % 8)) & 0x01)
 
 void send_string(const char *str) { send_string_with_delay(str, 0); }
 
@@ -236,10 +246,12 @@ void send_char(char ascii_code) {
     }
 #endif
 
-    uint8_t keycode    = pgm_read_byte(&ascii_to_keycode_lut[(uint8_t)ascii_code]);
+    uint8_t keycode = pgm_read_byte(&ascii_to_keycode_lut[(uint8_t)ascii_code]);
     bool    is_shifted = PGM_LOADBIT(ascii_to_shift_lut, (uint8_t)ascii_code);
     bool    is_altgred = PGM_LOADBIT(ascii_to_altgr_lut, (uint8_t)ascii_code);
     bool    is_dead    = PGM_LOADBIT(ascii_to_dead_lut, (uint8_t)ascii_code);
+
+    send_string_apply_keymap(&keycode, &is_shifted, &is_altgred);
 
     if (is_shifted) {
         register_code(KC_LSFT);
