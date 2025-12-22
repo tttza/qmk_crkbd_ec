@@ -38,9 +38,9 @@ void matrix_init_custom(void) {
     ecsm_config_t ecsm_config;
 #ifdef EEPROM_ECS_THRESHOLD_ADDR
     ecsm_config.low_threshold =
-        eeprom_read_word((uint16_t*)EEPROM_ECS_THRESHOLD_ADDR);
+        eeprom_read_word((uint16_t *)EEPROM_ECS_THRESHOLD_ADDR);
     ecsm_config.high_threshold =
-        eeprom_read_word((uint16_t*)(EEPROM_ECS_THRESHOLD_ADDR + 2));
+        eeprom_read_word((uint16_t *)(EEPROM_ECS_THRESHOLD_ADDR + 2));
 #else
     ecsm_config.low_threshold  = LOW_THRESHOLD;
     ecsm_config.high_threshold = HIGH_THRESHOLD;
@@ -98,9 +98,11 @@ bool matrix_post_scan(void) {
 }
 
 uint8_t matrix_scan(void) {
-    bool changed = matrix_scan_custom(raw_matrix) || matrix_post_scan();
+    // Offset raw matrix to this hand to avoid clobbering the other half's rows.
+    bool changed =
+        matrix_scan_custom(raw_matrix + thisHand) || matrix_post_scan();
 
-    debounce(raw_matrix, matrix + thisHand, ROWS_PER_HAND, changed);
+    debounce(raw_matrix + thisHand, matrix + thisHand, ROWS_PER_HAND, changed);
 
     return changed;
 }

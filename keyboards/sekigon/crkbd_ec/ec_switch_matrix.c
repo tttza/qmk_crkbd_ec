@@ -7,6 +7,11 @@
 #include "analog.h"
 #include "atomic_util.h"
 #include "debug.h"
+#include "wait.h"
+
+#ifndef ARRAY_SIZE
+#    define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#endif
 
 // sensing channel definitions
 #define S0 0
@@ -19,13 +24,13 @@
 #define S7 7
 
 #if defined(PLATFORM_PICO)
-#    define WAIT_DISCHARGE()
+#    define WAIT_DISCHARGE() wait_us(2)
 #    define WAIT_CHARGE() wait_us(4)
 #    define cli() __interrupt_disable__()
 #    define sei() __interrupt_enable__(NULL)
 #else
-#    define WAIT_DISCHARGE()
-#    define WAIT_CHARGE()
+#    define WAIT_DISCHARGE() wait_us(2)
+#    define WAIT_CHARGE() wait_us(2)
 #endif
 
 // pin connections
@@ -34,6 +39,10 @@ const uint8_t col_channels[] = MATRIX_COL_CHANNELS;
 const uint8_t mux_sel_pins[] = MUX_SEL_PINS;
 
 _Static_assert(sizeof(mux_sel_pins) == 3, "invalid MUX_SEL_PINS");
+_Static_assert(ARRAY_SIZE(row_pins) * 2 == MATRIX_ROWS,
+               "row_pins must list rows per hand");
+_Static_assert(ARRAY_SIZE(col_channels) == MATRIX_COLS,
+               "col_channels must match MATRIX_COLS");
 
 static ecsm_config_t config;
 static uint16_t      ecsm_sw_value[MATRIX_ROWS][MATRIX_COLS];
@@ -49,13 +58,13 @@ static inline void charge_capacitor(uint8_t row) {
 }
 
 static inline void clear_all_row_pins(void) {
-    for (int row = 0; row < sizeof(row_pins); row++) {
+    for (int row = 0; row < ARRAY_SIZE(row_pins); row++) {
         writePinLow(row_pins[row]);
     }
 }
 
 static inline void init_mux_sel(void) {
-    for (int idx = 0; idx < sizeof(mux_sel_pins); idx++) {
+    for (int idx = 0; idx < ARRAY_SIZE(mux_sel_pins); idx++) {
         setPinOutput(mux_sel_pins[idx]);
     }
 }
@@ -68,14 +77,14 @@ static inline void select_mux(uint8_t col) {
 }
 
 static inline void init_row(void) {
-    for (int idx = 0; idx < sizeof(row_pins); idx++) {
+    for (int idx = 0; idx < ARRAY_SIZE(row_pins); idx++) {
         setPinOutput(row_pins[idx]);
         writePinLow(row_pins[idx]);
     }
 }
 
 // Initialize pins
-int ecsm_init(ecsm_config_t const* const ecsm_config) {
+int ecsm_init(ecsm_config_t const *const ecsm_config) {
     // save config
     config = *ecsm_config;
 
@@ -103,7 +112,7 @@ int ecsm_init(ecsm_config_t const* const ecsm_config) {
     return 0;
 }
 
-void ecsm_get_config(ecsm_config_t* ecsm_config) {
+void ecsm_get_config(ecsm_config_t *ecsm_config) {
     // Copy config
     *ecsm_config = config;
 }
@@ -115,6 +124,9 @@ static uint16_t ecsm_readkey_raw(uint8_t row, uint8_t col) {
     discharge_capacitor();
 
     select_mux(col);
+
+    // Let the multiplexer output settle before driving rows.
+    WAIT_DISCHARGE();
 
     clear_all_row_pins();
 
@@ -134,7 +146,8 @@ static uint16_t ecsm_readkey_raw(uint8_t row, uint8_t col) {
 }
 
 // Update press/release state of key at (row, col)
-static bool ecsm_update_key(matrix_row_t* current_row, uint8_t col, uint16_t sw_value) {
+static bool ecsm_update_key(matrix_row_t *current_row, uint8_t col,
+                            uint16_t sw_value) {
     bool current_state = (*current_row >> col) & 1;
 
     // press to release
@@ -166,15 +179,18 @@ bool ecsm_matrix_scan(matrix_row_t current_matrix[]) {
     }
 #endif
 
-    for (int col = 0; col < sizeof(col_channels); col++) {
-        for (int row = 0; row < sizeof(row_pins); row++) {
+    for (int col = 0; col < ARRAY_SIZE(col_channels); col++) {
+        for (int row = 0; row < ARRAY_SIZE(row_pins); row++) {
 #ifdef ECS_VELOCITY_ENABLED
             uint16_t current = ecsm_readkey_raw(row, col);
 
             if (!first) {
-                int32_t current_velocity = ((int32_t)current - ecsm_sw_value[row][col]) * 100 / dt;
+                int32_t current_velocity =
+                    ((int32_t)current - ecsm_sw_value[row][col]) * 100 / dt;
                 const uint8_t filt = 8;
-                velocity[row][col]       = (filt * (int32_t)velocity[row][col] + (10 - filt) * current_velocity) / 10;
+                velocity[row][col] = (filt * (int32_t)velocity[row][col] +
+                                      (10 - filt) * current_velocity) /
+                                     10;
             } else {
                 first = false;
             }
@@ -183,7 +199,8 @@ bool ecsm_matrix_scan(matrix_row_t current_matrix[]) {
 #else
             ecsm_sw_value[row][col] = ecsm_readkey_raw(row, col);
 #endif
-            updated |= ecsm_update_key(&current_matrix[row], col, ecsm_sw_value[row][col]);
+            updated |= ecsm_update_key(&current_matrix[row], col,
+                                       ecsm_sw_value[row][col]);
         }
     }
 
@@ -196,26 +213,29 @@ bool ecsm_matrix_scan(matrix_row_t current_matrix[]) {
 
 // Debug print key values
 void ecsm_dprint_matrix(void) {
-    for (int row = 0; row < sizeof(row_pins); row++) {
-        for (int col = 0; col < sizeof(col_channels); col++) {
+    for (int row = 0; row < ARRAY_SIZE(row_pins); row++) {
+        for (int col = 0; col < ARRAY_SIZE(col_channels); col++) {
             dprintf("%4d", ecsm_sw_value[row][col]);
-            if (col < sizeof(col_channels) - 1) {
+            if (col < ARRAY_SIZE(col_channels) - 1) {
                 dprintf(",");
             }
         }
         dprintf("\n");
     }
     dprintf("\n");
-    // dprintf("%d,%d,%d,%d,%d\n", ecsm_sw_value[0][0], ecsm_sw_value[0][1], ecsm_sw_value[0][2], ecsm_sw_value[0][3],ecsm_sw_value[1][1]);
+    // dprintf("%d,%d,%d,%d,%d\n", ecsm_sw_value[0][0], ecsm_sw_value[0][1],
+    // ecsm_sw_value[0][2], ecsm_sw_value[0][3],ecsm_sw_value[1][1]);
 }
 
 #ifdef ECS_VELOCITY_ENABLED
-int16_t        ecsm_get_velocity(uint8_t row, uint8_t col) { return velocity[row][col]; }
-void           ecsm_dprint_velocity(void) {
-    for (int row = 0; row < sizeof(row_pins); row++) {
-        for (int col = 0; col < sizeof(col_channels); col++) {
+int16_t ecsm_get_velocity(uint8_t row, uint8_t col) {
+    return velocity[row][col];
+}
+void ecsm_dprint_velocity(void) {
+    for (int row = 0; row < ARRAY_SIZE(row_pins); row++) {
+        for (int col = 0; col < ARRAY_SIZE(col_channels); col++) {
             dprintf("%4d", velocity[row][col]);
-            if (col < sizeof(col_channels) - 1) {
+            if (col < ARRAY_SIZE(col_channels) - 1) {
                 dprintf(",");
             }
         }
