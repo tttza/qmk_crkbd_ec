@@ -7,6 +7,7 @@
 #include "pio_manager.h"
 #include "boards/pico_boards.h"
 
+#include "hardware/pio.h"
 #include "pico/stdlib.h"
 
 #ifndef WS2812_RES
@@ -17,22 +18,33 @@ static PIO pio = pio0;
 static int sm  = -1;
 LED_TYPE ws2812_leds[WS2812_LED_COUNT];
 
-static int ws2812_try_init(void) {
-	sm = pio_manager_get_empty_sm(pio);
+static int ws2812_program_load(PIO target_pio, int candidate_sm) {
+    int32_t offset = pio_manager_add_program(target_pio, candidate_sm, &ws2812_program);
 
-	if (sm < 0) {
-		return -1;
-	}
+    if (offset < 0) {
+        pio_sm_unclaim(target_pio, candidate_sm);
+        return -1;
+    }
 
-	int32_t offset = pio_manager_add_program(pio, sm, &ws2812_program);
-
-	if (offset < 0) {
-		return -1;
-	}
-
+	pio = target_pio;
+	sm  = candidate_sm;
 	ws2812_program_init(pio, sm, offset, WS2812_DI_PIN, 800000, false);
+    return 0;
+}
 
-	return 0;
+static int ws2812_try_init(void) {
+	int candidate = pio_manager_get_empty_sm(pio0);
+	if (candidate >= 0 && ws2812_program_load(pio0, candidate) == 0) {
+		return 0;
+	}
+
+	// Fall back to PIO1 if PIO0 is busy (e.g. soft serial already claimed SMs)
+	candidate = pio_manager_get_empty_sm(pio1);
+	if (candidate >= 0 && ws2812_program_load(pio1, candidate) == 0) {
+		return 0;
+	}
+
+	return -1;
 }
 
 void ws2812_init(void) {

@@ -6,6 +6,7 @@
 #include "ec_switch_matrix.h"
 #include "eeprom.h"
 #include "eeconfig.h"
+#include "raw_hid.h"
 #include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
 
 // Align custom lighting command IDs with VIA custom commands
@@ -64,7 +65,7 @@ extern rgblight_config_t rgblight_config;
 #    define LIGHTING_ENABLE_NOEEPROM() rgb_matrix_enable_noeeprom()
 #    define LIGHTING_SETSPEED_NOEEPROM(speed) \
         rgb_matrix_set_speed_noeeprom(speed)
-#    define LIGHTING_UPDATE_EECONFIG() eeconfig_update_rgb_matrix()
+#    define LIGHTING_UPDATE_EECONFIG() eeconfig_update_rgb_matrix(&rgb_matrix_config)
 #    define LIGHTING_CONFIG rgb_matrix_config
 extern rgb_config_t rgb_matrix_config;
 #else
@@ -211,12 +212,99 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             eeprom_update_dword(
                 (uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * layer),
                 LIGHTING_CONFIG.raw);
-            eeconfig_update_rgblight_current();
+            LIGHTING_UPDATE_EECONFIG();
 #endif
             break;
         default:
             break;
     }
+}
+
+static bool handle_custom_lighting_command(uint8_t command_id, uint8_t *data,
+                                           uint8_t length) {
+    if (length < 3) {
+        return false;
+    }
+
+    uint8_t channel    = data[1];
+    uint8_t *value_ptr = &data[2];
+
+    // New VIA custom-value format: [cmd, channel, value_id, value...]
+    if (channel == id_custom_channel || channel == id_qmk_rgblight_channel ||
+        channel == id_qmk_rgb_matrix_channel) {
+        switch (command_id) {
+            case id_custom_set_value:
+                via_custom_lighting_set_value(value_ptr);
+                return true;
+            case id_custom_get_value:
+                via_custom_lighting_get_value(value_ptr);
+                return true;
+            case id_custom_save:
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
+                eeprom_update_dword(
+                    (uint32_t *)(VIA_RGBLIGHT_USER_ADDR +
+                                 4 * get_highest_layer(layer_state)),
+                    LIGHTING_CONFIG.raw);
+                LIGHTING_UPDATE_EECONFIG();
+#endif
+                return true;
+            default:
+                break;
+        }
+    }
+
+    // Legacy VIA 0x0009-style layout: [cmd, value_id, value...]
+    if (length >= 2 &&
+        channel >= id_qmk_rgblight_brightness &&
+        channel <= id_qmk_rgblight_color) {
+        value_ptr = &data[1];
+        switch (command_id) {
+            case id_custom_set_value:
+                via_custom_lighting_set_value(value_ptr);
+                return true;
+            case id_custom_get_value:
+                via_custom_lighting_get_value(value_ptr);
+                return true;
+            case id_custom_save:
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
+                eeprom_update_dword(
+                    (uint32_t *)(VIA_RGBLIGHT_USER_ADDR +
+                                 4 * get_highest_layer(layer_state)),
+                    LIGHTING_CONFIG.raw);
+                LIGHTING_UPDATE_EECONFIG();
+#endif
+                return true;
+            default:
+                break;
+        }
+    }
+
+    return false;
+}
+
+bool via_command_kb(uint8_t *data, uint8_t length) {
+    if (length < 2) {
+        return false;
+    }
+
+    uint8_t command_id = data[0];
+
+    if ((command_id == id_get_keyboard_value || command_id == id_set_keyboard_value) &&
+        length >= 6 && data[1] == 0xec) {
+        raw_hid_receive_kb(data, length);
+        raw_hid_send(data, length);
+        return true;
+    }
+
+    if (command_id == id_custom_set_value || command_id == id_custom_get_value ||
+        command_id == id_custom_save) {
+        if (handle_custom_lighting_command(command_id, data, length)) {
+            raw_hid_send(data, length);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 #ifdef RGB_MATRIX_ENABLE
