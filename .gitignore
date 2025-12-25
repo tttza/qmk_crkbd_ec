@@ -129,3 +129,4 @@ via*.json
 
 
 old_repo/**
+logs/**
