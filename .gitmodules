@@ -20,7 +20,7 @@
 	url = https://github.com/qmk/printf
 [submodule "lib/pico-sdk"]
 	path = lib/pico-sdk
-	url = https://github.com/qmk/pico-sdk.git
+	url = https://github.com/raspberrypi/pico-sdk.git
 [submodule "lib/lvgl"]
 	path = lib/lvgl
 	url = https://github.com/qmk/lvgl.git

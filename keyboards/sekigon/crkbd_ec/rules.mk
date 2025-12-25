@@ -4,11 +4,16 @@ CUSTOM_MATRIX = lite
 SRC += analog.c ec_switch_matrix.c matrix.c
 CFLAGS += -DPLATFORM_PICO=1
 
+# Use the SDK-generated bs2_default boot2 blob (legacy blob caused BOOTSEL).
+RP2040_BOOT2_USE_LEGACY = no
+OPT_DEFS += -DRP2040_FLASH_OLD_DEFAULT
+
 # Force the legacy Pico SDK platform (matches working rp2040 branch).
 PLATFORM_KEY = pico
 MCU_FAMILY = PICO
 MCU_SERIES = RP2040
 MCU = cortex-m0plus
+# Keep the wear-leveling layer but force the rp2040 flash backend to match the old branch.
 EEPROM_DRIVER = wear_leveling
 WEAR_LEVELING_DRIVER = rp2040_flash
 

@@ -4,7 +4,12 @@ COMMON_VPATH += $(DRIVER_PATH)/pico
 PROTOCOL_DIR := $(TMK_PATH)/protocol
 PICO_PROTOCOL_DIR := $(PROTOCOL_DIR)/pico
 
+# The boot2 section is supplied either by the legacy C blob or the generated bs2_default.
+ifeq ($(RP2040_BOOT2_USE_LEGACY),yes)
+	# stage2_bootloaders.c provides .boot2 when legacy is enabled
+else
 SRC += $(INTERMEDIATE_OUTPUT)/src/bs2_default_padded_checksummed.S
+endif
 LDSCRIPT := $(PICO_SDK_PATH)/src/rp2_common/pico_standard_link/memmap_default.ld
 
 SRC += $(PICO_PROTOCOL_DIR)/protocol.c

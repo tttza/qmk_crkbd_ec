@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
 #endif
 
-// Limit dynamic keymap usage so it fits inside the wear-leveling RP2040 EEPROM window.
+// Limit dynamic keymap usage so it fits inside the RP2040 EEPROM window.
 #ifdef DYNAMIC_KEYMAP_EEPROM_MAX_ADDR
 #    undef DYNAMIC_KEYMAP_EEPROM_MAX_ADDR
 #endif

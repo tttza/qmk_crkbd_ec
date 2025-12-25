@@ -395,6 +395,13 @@ SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp
 # Avoid pulling in the tiny printf fallback when the Pico SDK printf is linked
 SRC := $(filter-out lib/printf/src/printf/printf.c,$(SRC))
 
+ifeq ($(RP2040_BOOT2_USE_LEGACY),yes)
+
+# Use the precompiled boot2 blobs from the legacy rp2040 branch (matches working Xiao RP2040 behavior).
+SRC += platforms/chibios/vendors/RP/stage2_bootloaders.c
+
+else
+
 BOOT2INC_DIR += -I$(PICO_PROTOCOL_DIR)
 BOOT2INC_DIR += -I$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/include
 BOOT2INC_DIR += -I$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/asminclude
@@ -412,6 +419,8 @@ $(INTERMEDIATE_OUTPUT)/src/bs2_default.bin: $(INTERMEDIATE_OUTPUT)/src/bs2_defau
 
 $(INTERMEDIATE_OUTPUT)/src/bs2_default_padded_checksummed.S: $(INTERMEDIATE_OUTPUT)/src/bs2_default.bin
 	$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/pad_checksum -s 0xffffffff $^ $@
+
+endif
 
 
 flash: $(BUILD_DIR)/$(TRAGET).elf cpfirmware sizeafter

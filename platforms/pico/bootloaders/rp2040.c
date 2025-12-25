@@ -6,8 +6,13 @@
 #include "pico/bootrom.h"
 #include "hardware/watchdog.h"
 
+// Avoid forcing BOOTSEL unless explicitly requested; reboot like a normal reset
+// so we can tell if firmware is accidentally calling the bootloader path.
 void bootloader_jump(void) {
-    reset_usb_boot(0, 0);
+    watchdog_reboot(0, 0, 0);
+    while (1) {
+        tight_loop_contents();
+    }
 }
 
 __attribute__((weak)) void mcu_reset(void) {
