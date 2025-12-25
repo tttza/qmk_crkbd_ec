@@ -3,6 +3,8 @@ BOOTLOADER = rp2040
 CUSTOM_MATRIX = lite
 SRC += analog.c ec_switch_matrix.c matrix.c
 CFLAGS += -DPLATFORM_PICO=1
+CFLAGS += -DPICO_BOOTSEL_VIA_DOUBLE_RESET=0
+CFLAGS += -DPICO_WATCHDOG_TIMEOUT_MS=0
 
 # Use the SDK-generated bs2_default boot2 blob (legacy blob caused BOOTSEL).
 RP2040_BOOT2_USE_LEGACY = no
