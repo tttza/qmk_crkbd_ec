@@ -40,6 +40,18 @@
 #include "hardware/watchdog.h"
 #include "tusb.h"
 
+#ifndef PICO_WATCHDOG_TIMEOUT_MS
+#    define PICO_WATCHDOG_TIMEOUT_MS 8000
+#endif
+
+// TinyUSB 1.5 changed the HID completion callback length type from uint8_t to
+// uint16_t. Recent pico-sdk exposes TUSB_VERSION_* macros; older drops do not.
+#if (defined(TUSB_VERSION_MAJOR) && (TUSB_VERSION_MAJOR > 0 || TUSB_VERSION_MINOR >= 15))
+typedef uint16_t hid_report_len_t;
+#else
+typedef uint8_t hid_report_len_t;
+#endif
+
 void platform_setup(void);
 extern char __StackTop;
 extern host_driver_t driver;
@@ -99,7 +111,9 @@ void protocol_pre_task(void) {
 
 void protocol_post_task(void) {
     tud_task();
+#if PICO_WATCHDOG_TIMEOUT_MS > 0
     watchdog_update();
+#endif
 }
 
 void protocol_setup(void) {
@@ -113,7 +127,9 @@ void protocol_init(void) { qmk_init(); }
 void protocol_task(void) {
     tud_task();
     qmk_task();
+#if PICO_WATCHDOG_TIMEOUT_MS > 0
     watchdog_update();
+#endif
 }
 
 //--------------------------------------------------------------------+
@@ -213,8 +229,9 @@ void tud_cdc_rx_cb(uint8_t itf) {
 // Invoked when sent REPORT successfully to host
 // Application can use this to send the next report
 // Note: For composite reports, report[0] is report ID
+// TinyUSB HID report complete callback (len type varies by TinyUSB version)
 void tud_hid_report_complete_cb(uint8_t itf, uint8_t const* report,
-                                uint8_t len) {
+                                hid_report_len_t len) {
     (void)itf;
     (void)len;
 }

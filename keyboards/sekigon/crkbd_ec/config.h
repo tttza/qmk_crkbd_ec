@@ -31,6 +31,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // Prevent accidental double-reset from dropping into BOOTSEL while debugging.
 #define PICO_BOOTSEL_VIA_DOUBLE_RESET 0
+// Disable platform watchdog to avoid falling back to BOOTSEL on Xiao RP2040.
+#define PICO_WATCHDOG_TIMEOUT_MS 0
 
 /* USB Device descriptor parameter */
 #define VENDOR_ID 0xFEED

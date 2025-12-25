@@ -26,15 +26,23 @@
 #    define PICO_SYSTEM_CLOCK_KHZ 125000
 #endif
 
+#ifndef PICO_WATCHDOG_TIMEOUT_MS
+#    define PICO_WATCHDOG_TIMEOUT_MS 8000
+#endif
+
 uint32_t interrupts;
 
 void platform_setup(void) {
 
+#if PICO_WATCHDOG_TIMEOUT_MS > 0
     if (watchdog_caused_reboot() && watchdog_hw->scratch[0] == 0x2040dead) {
         bootloader_jump();
     }
-    watchdog_enable(8000, 1);
+    watchdog_enable(PICO_WATCHDOG_TIMEOUT_MS, 1);
     watchdog_hw->scratch[0] = 0x2040dead;
+#else
+    watchdog_hw->scratch[0] = 0;
+#endif
 
     board_init();
 
