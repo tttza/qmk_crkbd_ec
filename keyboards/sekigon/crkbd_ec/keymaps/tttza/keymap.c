@@ -79,7 +79,17 @@ enum layer_number {
     _ADJUST,
 };
 
-enum custom_keycodes { CK_EnJIS = SAFE_RANGE, CK_EnUS, LOWER, RAISE, WSEL };
+// Use USER keycodes so Remap/VIA can display them
+enum custom_keycodes {
+    CK_USER_LOWER  = QK_USER_0,
+    CK_USER_RAISE  = QK_USER_1,
+    CK_EnJIS       = QK_USER_2,
+    CK_EnUS        = QK_USER_3,
+    WSEL           = QK_USER_4,
+};
+
+#define LOWER CK_USER_LOWER
+#define RAISE CK_USER_RAISE
 
 // マクロ再生時に物理キー入力と同じくUS/JISを切り替えたまま記号が出るようにする
 static uint16_t lang_keycode(uint16_t keycode) {
@@ -300,9 +310,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case CK_EnUS:
             set_keyboard_lang_to_jis(false);
             return false;
-        case LOWER:
+        case CK_USER_LOWER:
             return process_lower(keycode, record);
-        case RAISE:
+        case CK_USER_RAISE:
             return process_raise(keycode, record);
         default:
             // NOTE: is redundant?
