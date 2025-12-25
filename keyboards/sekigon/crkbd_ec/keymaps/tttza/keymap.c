@@ -18,6 +18,7 @@
 #include "ec_switch_matrix.h"
 #include "protocol/pico/pico_cdc.h"
 #include "eeprom.h"
+#include "eeconfig.h"
 
 // Compatibility aliases for renamed keycodes
 #ifndef RESET
@@ -86,6 +87,7 @@ enum custom_keycodes {
     CK_EnJIS       = QK_USER_2,
     CK_EnUS        = QK_USER_3,
     WSEL           = QK_USER_4,
+    CK_HAND_SWAP   = QK_USER_5,
 };
 
 #define LOWER CK_USER_LOWER
@@ -163,7 +165,7 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 
   [_ADJUST] = LAYOUT(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
-        QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+                QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS, CK_HAND_SWAP, XXXXXXX, XXXXXXX, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
     RM_TOGG, RM_HUEU, RM_SATU, RM_VALU, XXXXXXX, XXXXXXX,                      XXXXXXX,CK_EnJIS, KC_MUTE, KC_VOLU, KC_VOLD, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
@@ -309,6 +311,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
         case CK_EnUS:
             set_keyboard_lang_to_jis(false);
+            return false;
+        case CK_HAND_SWAP:
+            if (record->event.pressed) {
+                bool is_left = eeconfig_read_handedness();
+                eeconfig_update_handedness(!is_left);
+                reset_keyboard();
+            }
             return false;
         case CK_USER_LOWER:
             return process_lower(keycode, record);
