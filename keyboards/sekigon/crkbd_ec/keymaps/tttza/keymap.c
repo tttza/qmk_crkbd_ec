@@ -165,7 +165,7 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 
   [_ADJUST] = LAYOUT(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
-                QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS, CK_HAND_SWAP, XXXXXXX, XXXXXXX, XXXXXXX,
+    QK_BOOT, QK_USER_5, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS, CK_HAND_SWAP, XXXXXXX, XXXXXXX, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
     RM_TOGG, RM_HUEU, RM_SATU, RM_VALU, XXXXXXX, XXXXXXX,                      XXXXXXX,CK_EnJIS, KC_MUTE, KC_VOLU, KC_VOLD, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
