@@ -62,7 +62,8 @@ tusb_desc_device_t const desc_device = {
     .idProduct = PRODUCT_ID,
     .bcdDevice = 0x0100,
 
-    .iManufacturer = 0x01,
+    // Hide manufacturer string on the USB descriptor so only the product name shows up.
+    .iManufacturer = 0x00,
     .iProduct      = 0x02,
     .iSerialNumber = 0x03,
 

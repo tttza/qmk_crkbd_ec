@@ -1,7 +1,7 @@
 {
   "keyboard_name": "Corne EC",
-  "manufacturer": "sekigon-gonnoc",
-  "maintainer": "sekigon-gonnoc",
+  "manufacturer": "sekigon",
+  "maintainer": "tttza",
   "url": "https://nogikes.booth.pm/items/2371017",
   "processor": "RP2040",
   "bootloader": "rp2040",
