@@ -23,5 +23,6 @@ bool usb_connected_state(void) {
     return tud_connected();
 }
 void usb_disconnect(void) {
-#warning "No implementation" //TODO implement
+    // TinyUSB provides bus disconnect for force re-enumeration when needed.
+    tud_disconnect();
 }

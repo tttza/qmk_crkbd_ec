@@ -18,3 +18,7 @@ SRC := $(filter-out lib/printf/src/printf/printf.c printf.c,$(SRC))
 # Ensure the correct bootloader source is included (common.mk may add an empty path before BOOTLOADER_TYPE is set)
 SRC := $(filter-out $(PLATFORM_COMMON_DIR)/bootloaders/.c,$(SRC))
 SRC += $(PLATFORM_COMMON_DIR)/bootloaders/$(BOOTLOADER_TYPE).c
+
+# GCC injects -Wstrict-prototypes into the global flags; drop it for C++ files
+# to avoid noise from pico_standard_link sources.
+CXXFLAGS := $(filter-out -Wstrict-prototypes,$(CXXFLAGS))

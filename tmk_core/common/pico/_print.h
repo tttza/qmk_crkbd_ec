@@ -26,11 +26,7 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
-// Create user & normal print defines
+// Provide platform xprintf/xputc hooks; quantum/logging/print.h defines the
+// public print/uprint macros using these.
 #define xprintf(...) printf(__VA_ARGS__)
 #define xputc(c) putc(c, stdout)
-#define print(s) printf(PSTR(s))
-#define println(s) printf(PSTR(s "\r\n"))
-#define uprint(s) printf(s)
-#define uprintln(s) printf(s)
-#define uprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)

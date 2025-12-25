@@ -283,6 +283,10 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
         checksum_received = serial_read_byte();
     } while (0);
 
+    if (receive_res == 0 && checksum_computed != checksum_received) {
+        receive_res = -1;
+    }
+
     soft_serial_disable_rx();
 
     if (receive_res < 0) {
