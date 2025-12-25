@@ -8,6 +8,7 @@
 #include "boards/pico_boards.h"
 
 #include "hardware/pio.h"
+#include "hardware/structs/pio.h"
 #include "pico/stdlib.h"
 
 #ifndef WS2812_RES
@@ -17,6 +18,10 @@
 static PIO pio = pio0;
 static int sm  = -1;
 LED_TYPE ws2812_leds[WS2812_LED_COUNT];
+
+static inline bool ws2812_sm_enabled(PIO target_pio, int sm_index) {
+	return (target_pio->ctrl & (1u << (sm_index + PIO_CTRL_SM_ENABLE_LSB))) != 0;
+}
 
 static int ws2812_program_load(PIO target_pio, int candidate_sm) {
     int32_t offset = pio_manager_add_program(target_pio, candidate_sm, &ws2812_program);
@@ -72,8 +77,12 @@ void ws2812_set_color_all(uint8_t red, uint8_t green, uint8_t blue) {
 }
 
 void ws2812_setleds(LED_TYPE *ledarray, uint16_t number_of_leds) {
-	if (sm < 0 && ws2812_try_init() != 0) {
-		return;
+	// Re-init if SM was never acquired or got disabled (e.g. after bus resets).
+	if (sm < 0 || !ws2812_sm_enabled(pio, sm)) {
+		sm = -1;
+		if (ws2812_try_init() != 0) {
+			return;
+		}
 	}
 
 	__interrupt_disable__();
