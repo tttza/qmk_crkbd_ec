@@ -10,6 +10,11 @@ SRC +=	\
 	$(PLATFORM_COMMON_DIR)/timer.c \
 	$(PLATFORM_COMMON_DIR)/bootloaders/$(BOOTLOADER_TYPE).c
 
+# Use platform-specific suspend/timer for Pico and drop the generic copies to avoid duplicate symbols
+ifeq ($(PLATFORM_KEY),pico)
+SRC := $(filter-out $(PLATFORM_PATH)/suspend.c $(PLATFORM_PATH)/timer.c,$(SRC))
+endif
+
 # Search Path
 VPATH += $(PLATFORM_PATH)
 VPATH += $(PLATFORM_PATH)/$(PLATFORM_KEY)

@@ -230,6 +230,10 @@ def main():
                         help='write output to named file; defaults to "flash.uf2" or "flash.bin" where sensible')
     parser.add_argument('-d' , '--device', dest="device_path",
                         help='select a device path to flash')
+    parser.add_argument('--wait', action='store_true',
+                        help='(ignored) maintain compatibility with QMK flash wrappers')
+    parser.add_argument('--deploy', action='store_true',
+                        help='(ignored) maintain compatibility with QMK flash wrappers')
     parser.add_argument('-l' , '--list', action='store_true',
                         help='list connected devices')
     parser.add_argument('-c' , '--convert', action='store_true',

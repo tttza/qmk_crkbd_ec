@@ -24,6 +24,8 @@ endif
 
 GIT_DESCRIBE = $(shell git describe --tags --long --dirty="\\*")
 
+PICO_PROTOCOL_DIR := $(TMK_PATH)/protocol/pico
+
 ifneq ($(PICO_FLASH_SPI_CLKDIV),)
 	CFLAGS += -DPICO_FLASH_SPI_CLKDIV=$(PICO_FLASH_SPI_CLKDIV)
 else
@@ -62,6 +64,8 @@ CFLAGS += -DLIB_PICO_SYNC_CRITICAL_SECTION=1
 CFLAGS += -DLIB_PICO_SYNC_MUTEX=1
 CFLAGS += -DLIB_PICO_SYNC_SEM=1
 CFLAGS += -DLIB_PICO_TIME=1
+CFLAGS += -DLIB_PICO_UNIQUE_ID=1
+CFLAGS += -DLIB_PICO_UNIQUE_ID_PICO=1
 CFLAGS += -DLIB_PICO_UTIL=1
 CFLAGS += -DLIB_PICO_MULTICORE=1
 CFLAGS += -DLIB_TINYUSB_BOARD=1
@@ -115,6 +119,7 @@ CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_bootrom/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_bit_ops/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/common/pico_divider/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_double/include
+CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_unique_id/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_int64_ops/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_float/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_malloc/include
@@ -130,7 +135,7 @@ CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/class/hid
 CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/src/class/cdc
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/include
 CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/cmsis/stub/CMSIS/Core/Include
-CFLAGS += -I$(PICO_SDK_PATH)/src/rp2_common/cmsis/stub/CMSIS/Device/RaspberryPi/RP2040/Include
+CFLAGS += -I$(PICO_SDK_PATH)/lib/tinyusb/hw/bsp/rp2040/boards/pico_sdk
 CFLAGS += -mcpu=cortex-m0plus
 CFLAGS += -mthumb
 CFLAGS += -O0 -g3
@@ -142,6 +147,10 @@ CFLAGS += -Wno-maybe-uninitialized
 CFLAGS += -ffunction-sections
 CFLAGS += -fdata-sections
 CFLAGS += -std=gnu11
+
+# Reuse the Pico-specific defines/includes for C++ sources (drop the C-only -std flag)
+CXXFLAGS += $(filter-out -std=gnu11,$(CFLAGS))
+CXXFLAGS += -std=gnu++17
 
 ASFLAGS += $(CFLAGS)
 
@@ -344,6 +353,7 @@ SRC += $(PICO_SDK_PATH)/src/rp2_common/hardware_xosc/xosc.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_printf/printf.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_bit_ops/bit_ops_aeabi.S
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_bootrom/bootrom.c
+SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_unique_id/unique_id.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_divider/divider.S
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_double/double_aeabi.S
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_double/double_init_rom.c
@@ -366,8 +376,9 @@ SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_bootsel_via_double_reset/pico_bootse
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/hw/bsp/rp2040/family.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/portable/raspberrypi/rp2040/dcd_rp2040.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/portable/raspberrypi/rp2040/rp2040_usb.c
-# SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/device/usbd.c
+SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/device/usbd.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/device/usbd_control.c
+SRC += $(PICO_PROTOCOL_DIR)/eeprom_shim.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/audio/audio_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/cdc/cdc_device.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/class/dfu/dfu_device.c
@@ -381,22 +392,25 @@ SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/tusb.c
 SRC += $(PICO_SDK_PATH)/lib/tinyusb/src/common/tusb_fifo.c
 SRC += $(PICO_SDK_PATH)/src/rp2_common/pico_fix/rp2040_usb_device_enumeration/rp2040_usb_device_enumeration.c
 
-BOOT2INC_DIR += -I$(PROTOCOL_DIR)
+# Avoid pulling in the tiny printf fallback when the Pico SDK printf is linked
+SRC := $(filter-out lib/printf/src/printf/printf.c,$(SRC))
+
+BOOT2INC_DIR += -I$(PICO_PROTOCOL_DIR)
 BOOT2INC_DIR += -I$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/include
 BOOT2INC_DIR += -I$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/asminclude
 
-$(KEYBOARD_OUTPUT)/src/bs2_default.o: $(PICO_SDK_PATH)/src/rp2_common/boot_stage2/compile_time_choice.S $(KEYBOARD_OUTPUT)/cflags.txt
-	@mkdir -p $(KEYBOARD_OUTPUT)/src
+$(INTERMEDIATE_OUTPUT)/src/bs2_default.o: $(PICO_SDK_PATH)/src/rp2_common/boot_stage2/compile_time_choice.S $(INTERMEDIATE_OUTPUT)/cflags.txt
+	@mkdir -p $(INTERMEDIATE_OUTPUT)/src
 	$(CC) $(CFLAGS) $(BOOT2INC_DIR) -c -o $@ $^
 
-$(KEYBOARD_OUTPUT)/src/bs2_default.elf: $(KEYBOARD_OUTPUT)/src/bs2_default.o
+$(INTERMEDIATE_OUTPUT)/src/bs2_default.elf: $(INTERMEDIATE_OUTPUT)/src/bs2_default.o
 	$(CC) $(CFLAGS) -Wl,--build-id=none -nostartfiles -Wl,--script=$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/boot_stage2.ld $^ -o $@
 
 
-$(KEYBOARD_OUTPUT)/src/bs2_default.bin: $(KEYBOARD_OUTPUT)/src/bs2_default.elf
+$(INTERMEDIATE_OUTPUT)/src/bs2_default.bin: $(INTERMEDIATE_OUTPUT)/src/bs2_default.elf
 	$(OBJCOPY) -Obinary $^ $@
 
-$(KEYBOARD_OUTPUT)/src/bs2_default_padded_checksummed.S: $(KEYBOARD_OUTPUT)/src/bs2_default.bin
+$(INTERMEDIATE_OUTPUT)/src/bs2_default_padded_checksummed.S: $(INTERMEDIATE_OUTPUT)/src/bs2_default.bin
 	$(PICO_SDK_PATH)/src/rp2_common/boot_stage2/pad_checksum -s 0xffffffff $^ $@
 
 

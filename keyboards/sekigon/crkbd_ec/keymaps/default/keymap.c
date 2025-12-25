@@ -16,8 +16,43 @@
 #include QMK_KEYBOARD_H
 
 #include "ec_switch_matrix.h"
-#include "pico_cdc.h"
+#include "protocol/pico/pico_cdc.h"
 #include "eeprom.h"
+
+// Compatibility aliases for renamed keycodes
+#ifndef RESET
+#    define RESET QK_BOOT
+#endif
+#ifndef RGB_TOG
+#    define RGB_TOG RM_TOGG
+#endif
+#ifndef RGB_MOD
+#    define RGB_MOD RM_NEXT
+#endif
+#ifndef RGB_HUI
+#    define RGB_HUI RM_HUEU
+#endif
+#ifndef RGB_HUD
+#    define RGB_HUD RM_HUED
+#endif
+#ifndef RGB_SAI
+#    define RGB_SAI RM_SATU
+#endif
+#ifndef RGB_SAD
+#    define RGB_SAD RM_SATD
+#endif
+#ifndef RGB_VAI
+#    define RGB_VAI RM_VALU
+#endif
+#ifndef RGB_VAD
+#    define RGB_VAD RM_VALD
+#endif
+#ifndef KC_MHEN
+#    define KC_MHEN JP_MHEN
+#endif
+#ifndef KC_HENK
+#    define KC_HENK JP_HENK
+#endif
 
 #if defined(RGBLIGHT_ENABLE)
 #include "rgblight.h"

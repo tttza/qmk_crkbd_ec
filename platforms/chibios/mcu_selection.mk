@@ -172,7 +172,7 @@ ifneq ($(findstring RP2040, $(MCU)),)
   BOARD ?= GENERIC_PROMICRO_RP2040
 
   # Default UF2 Bootloader settings
-  UF2_FAMILY ?= RP2040
+  UF2_FAMILY ?= 0xe48bff56
   FIRMWARE_FORMAT ?= uf2
 endif
 

@@ -17,6 +17,10 @@
 
 #include "util.h"
 
+#if defined(RGB_DI_PIN) && !defined(WS2812_DI_PIN)
+#    define WS2812_DI_PIN RGB_DI_PIN
+#endif
+
 /*
  * The WS2812 datasheets define T1H 900ns, T0H 350ns, T1L 350ns, T0L 900ns. Hence, by default, these
  * are chosen to be conservative and avoid problems rather than for maximum throughput; in the code,
@@ -88,6 +92,10 @@ typedef struct PACKED ws2812_led_t {
     uint8_t w;
 #endif
 } ws2812_led_t;
+
+#ifndef LED_TYPE
+#    define LED_TYPE ws2812_led_t
+#endif
 
 void ws2812_init(void);
 void ws2812_set_color(int index, uint8_t red, uint8_t green, uint8_t blue);

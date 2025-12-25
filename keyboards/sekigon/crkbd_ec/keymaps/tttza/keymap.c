@@ -16,8 +16,43 @@
 #include QMK_KEYBOARD_H
 
 #include "ec_switch_matrix.h"
-#include "pico_cdc.h"
+#include "protocol/pico/pico_cdc.h"
 #include "eeprom.h"
+
+// Compatibility aliases for renamed keycodes
+#ifndef RESET
+#    define RESET QK_BOOT
+#endif
+#ifndef RGB_TOG
+#    define RGB_TOG RM_TOGG
+#endif
+#ifndef RGB_MOD
+#    define RGB_MOD RM_NEXT
+#endif
+#ifndef RGB_HUI
+#    define RGB_HUI RM_HUEU
+#endif
+#ifndef RGB_HUD
+#    define RGB_HUD RM_HUED
+#endif
+#ifndef RGB_SAI
+#    define RGB_SAI RM_SATU
+#endif
+#ifndef RGB_SAD
+#    define RGB_SAD RM_SATD
+#endif
+#ifndef RGB_VAI
+#    define RGB_VAI RM_VALU
+#endif
+#ifndef RGB_VAD
+#    define RGB_VAD RM_VALD
+#endif
+#ifndef KC_MHEN
+#    define KC_MHEN JP_MHEN
+#endif
+#ifndef KC_HENK
+#    define KC_HENK JP_HENK
+#endif
 
 #if defined(RGBLIGHT_ENABLE)
 #    include "rgblight.h"
@@ -26,7 +61,7 @@
 extern rgb_config_t rgb_matrix_config;
 #endif
 
-#include "keymap_extras/keymap_jp.h"
+#include "keymap_extras/keymap_japanese.h"
 #include "select_word.h"
 #include "twpair_on_jis.h"
 #include "custom_keymap.h"
@@ -118,11 +153,11 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 
   [_ADJUST] = LAYOUT(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
-        RESET, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                      XXXXXXX, CK_EnUS, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+        QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-      RGB_TOG, RGB_HUI, RGB_SAI, RGB_VAI, XXXXXXX, XXXXXXX,                      XXXXXXX,CK_EnJIS, KC_MUTE, KC_VOLU, KC_VOLD, XXXXXXX,
+    RM_TOGG, RM_HUEU, RM_SATU, RM_VALU, XXXXXXX, XXXXXXX,                      XXXXXXX,CK_EnJIS, KC_MUTE, KC_VOLU, KC_VOLD, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-      RGB_MOD, RGB_HUD, RGB_SAD, RGB_VAD, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
+    RM_NEXT, RM_HUED, RM_SATD, RM_VALD, XXXXXXX, XXXXXXX,                         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                                           KC_LGUI, _______,  KC_SPC,     KC_ENT, _______, KC_RALT
                                       //`--------------------------'  `--------------------------'
@@ -222,8 +257,8 @@ bool            process_lower(uint16_t keycode, keyrecord_t *record) {
         if (!lower_cmb_pressed && lower_pressed &&
             (TIMER_DIFF_16(record->event.time, lower_pressed_time) <
              TAPPING_TERM)) {
-            register_code(KC_MHEN);
-            unregister_code(KC_MHEN);
+            register_code(JP_MHEN);
+            unregister_code(JP_MHEN);
             //   register_code(KC_LANG2); // for macOS
             //   unregister_code(KC_LANG2);
         }
@@ -244,8 +279,8 @@ bool process_raise(uint16_t keycode, keyrecord_t *record) {
         if (!raise_cmb_pressed && raise_pressed &&
             (TIMER_DIFF_16(record->event.time, raise_pressed_time) <
              TAPPING_TERM)) {
-            register_code(KC_HENK);
-            unregister_code(KC_HENK);
+            register_code(JP_HENK);
+            unregister_code(JP_HENK);
             //   register_code(KC_LANG1); // for macOS
             //   unregister_code(KC_LANG1);
         }

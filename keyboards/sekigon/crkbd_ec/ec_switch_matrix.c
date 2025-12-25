@@ -9,6 +9,10 @@
 #include "debug.h"
 #include "wait.h"
 
+#if defined(PLATFORM_PICO)
+#    include "hardware/gpio.h"
+#endif
+
 #ifndef ARRAY_SIZE
 #    define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif

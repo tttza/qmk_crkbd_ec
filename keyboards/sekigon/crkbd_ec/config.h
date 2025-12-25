@@ -19,12 +19,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config_common.h"
 
+#if !defined(__ASSEMBLER__) && !defined(__cplusplus)
+#    include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
+#endif
+
+// Limit dynamic keymap usage so it fits inside the wear-leveling RP2040 EEPROM window.
+#ifdef DYNAMIC_KEYMAP_EEPROM_MAX_ADDR
+#    undef DYNAMIC_KEYMAP_EEPROM_MAX_ADDR
+#endif
+#define DYNAMIC_KEYMAP_EEPROM_MAX_ADDR 2047
+
+// Prevent accidental double-reset from dropping into BOOTSEL while debugging.
+#define PICO_BOOTSEL_VIA_DOUBLE_RESET 0
+
 /* USB Device descriptor parameter */
 #define VENDOR_ID 0xFEED
 #define PRODUCT_ID 0xC0EC
 #define DEVICE_VER 0x0001
-#define MANUFACTURER sekigon - gonnoc
-#define PRODUCT Corne EC
+#define MANUFACTURER "sekigon-gonnoc"
+#define PRODUCT "Corne EC"
 
 /* key matrix size */
 #define MATRIX_ROWS 6
@@ -35,6 +48,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define LOW_THRESHOLD 600
 
 // VIA config
+#ifdef DYNAMIC_KEYMAP_LAYER_COUNT
+#    undef DYNAMIC_KEYMAP_LAYER_COUNT
+#endif
 #define DYNAMIC_KEYMAP_LAYER_COUNT 8
 #define VIA_CUSTOM_LIGHTING_ENABLE
 #define EEPROM_ECS_THRESHOLD_ADDR (EECONFIG_SIZE)
@@ -63,10 +79,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /* COL2ROW, ROW2COL */
 #define DIODE_DIRECTION COL2ROW
 
-#define SOFT_SERIAL_PIN 1
+#define SOFT_SERIAL_PIN GP1
 #define EE_HANDS
 
-#define RGB_DI_PIN 7
+#define WS2812_DI_PIN GP7
 #define RGBLED_NUM 42
 
 #ifdef RGBLIGHT_ENABLE
@@ -120,8 +136,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SPLIT_USB_TIMEOUT 3000
 #define SPLIT_USB_TIMEOUT_POLL 25
-#define SPLIT_WATCHDOG_ENABLE
-#define SPLIT_WATCHDOG_TIMEOUT 6000
+// Temporarily disable split watchdog while debugging boot issues.
+// #define SPLIT_WATCHDOG_ENABLE
+// #define SPLIT_WATCHDOG_TIMEOUT 6000
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is
  * not needed */
@@ -181,8 +198,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #define NO_ACTION_ONESHOT
 
 /* disable these deprecated features by default */
-#define NO_ACTION_MACRO
-#define NO_ACTION_FUNCTION
 
 /* Bootmagic Lite key configuration */
 // #define BOOTMAGIC_LITE_ROW 0

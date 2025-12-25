@@ -1,0 +1,14 @@
+Porting notes (rp2040 branch -> latest QMK pico)
+
+Key changes that made the board work:
+- Platform: forced legacy Pico stack (`PLATFORM_KEY = pico`, `MCU_FAMILY/MCU_SERIES = PICO/RP2040`) and kept bootloader rp2040.
+- Storage: switched to wear-leveling EEPROM (`EEPROM_DRIVER = wear_leveling`, `WEAR_LEVELING_DRIVER = rp2040_flash`), capped dynamic keymap space at 2047 bytes to fit the RP2040 flash window.
+- Double-reset: disabled `PICO_BOOTSEL_VIA_DOUBLE_RESET` to avoid unintended BOOTSEL entries while debugging.
+- Lighting: temporarily disabled RGB Matrix on pico to avoid ChibiOS ws2812 vendor driver; kept WS2812 pin definitions for future use. Guarded VIA lighting save path with `RGBLIGHT_ENABLE || RGB_MATRIX_ENABLE`.
+- VIA settings: kept `DYNAMIC_KEYMAP_LAYER_COUNT = 8`, VIA custom lighting offsets unchanged, ensured eeconfig internal include is guarded for C/C++.
+- Split/serial: preserved `SOFT_SERIAL_PIN GP1`, split watchdog temporarily disabled during bring-up.
+
+Leftovers / warnings to clean later:
+- info.json path warning (QMK expects a renamed location under keyboards/sekigon/crkbd_ec/).
+- Print macro redefinition warnings from quantum/logging vs pico _print (noise but harmless).
+- RGB Matrix currently off; re-enable with pico ws2812 driver if lighting is needed.

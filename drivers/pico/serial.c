@@ -321,11 +321,6 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
     serial_wait_send_complete();
 
 
-    *trans->status = (checksum_computed == checksum_received)
-                         ? TRANSACTION_ACCEPTED
-                         : TRANSACTION_DATA_ERROR;
-
-
     // end transaction
     serial_input();
 
@@ -339,17 +334,11 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
 /////////
 //  start transaction by initiator
 //
-// int  soft_serial_transaction(int sstd_index)
-//
-// Returns:
-//    TRANSACTION_END
-//    TRANSACTION_NO_RESPONSE
-//    TRANSACTION_DATA_ERROR
+// bool  soft_serial_transaction(int sstd_index)
 // this code is very time dependent, so we need to disable interrupts
-int __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
-    if (sstd_index > NUM_TOTAL_TRANSACTIONS) return TRANSACTION_TYPE_ERROR;
+bool __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
+    if (sstd_index > NUM_TOTAL_TRANSACTIONS) return false;
     split_transaction_desc_t *trans = &split_transaction_table[sstd_index];
-    if (!trans->status) return TRANSACTION_TYPE_ERROR;  // not registered
 
     // TODO: remove extra delay between transactions
     serial_delay();
@@ -367,7 +356,7 @@ int __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     if (sync_recv() != 0) {
         // dprintf("NACK 1\n");
         restore_interrupts(interrupt_status);
-        return TRANSACTION_NO_RESPONSE;
+        return false;
     }
 
     // if the slave is present syncronize with it
@@ -383,7 +372,7 @@ int __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     if (sync_recv() != 0) {
         // dprintf("NACK 1.5\n");
         restore_interrupts(interrupt_status);
-        return TRANSACTION_NO_RESPONSE;
+        return false;
     }
 
     soft_serial_enable_tx();
@@ -402,7 +391,7 @@ int __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     if (sync_recv() != 0) {
         // dprintf("NACK 2\n");
         restore_interrupts(interrupt_status);
-        return TRANSACTION_NO_RESPONSE;
+        return false;
     }
 
     soft_serial_enable_rx();
@@ -426,7 +415,7 @@ int __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
         serial_high();
 
         restore_interrupts(interrupt_status);
-        return TRANSACTION_DATA_ERROR;
+        return false;
     }
 
     // always, release the line when not in use
@@ -434,5 +423,5 @@ int __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     serial_output();
 
     restore_interrupts(interrupt_status);
-    return TRANSACTION_END;
+    return true;
 }

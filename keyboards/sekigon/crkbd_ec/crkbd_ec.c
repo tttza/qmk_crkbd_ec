@@ -6,6 +6,14 @@
 #include "ec_switch_matrix.h"
 #include "eeprom.h"
 #include "eeconfig.h"
+#include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
+
+// Align custom lighting command IDs with VIA custom commands
+enum {
+    id_lighting_set_value = id_custom_set_value,
+    id_lighting_get_value = id_custom_get_value,
+    id_lighting_save      = id_custom_save,
+};
 
 #ifndef CRKBD_EC_DEBUG_DEFAULT
 #    define CRKBD_EC_DEBUG_DEFAULT 0
@@ -197,11 +205,13 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
             break;
         case id_lighting_save:
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
             // Save rgblight config per layer
             eeprom_update_dword(
                 (uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * layer),
                 LIGHTING_CONFIG.raw);
             eeconfig_update_rgblight_current();
+#endif
             break;
         default:
             break;

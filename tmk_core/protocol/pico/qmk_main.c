@@ -52,14 +52,22 @@
 #include "iusb.h"
 
 /* host struct */
-host_driver_t driver = {keyboard_leds, send_keyboard, send_mouse, send_system,
-                        send_consumer};
+host_driver_t driver = {
+    .keyboard_leds = keyboard_leds,
+    .send_keyboard = send_keyboard,
+    .send_nkro     = NULL,
+    .send_mouse    = send_mouse,
+    .send_extra    = send_extra,
+#ifdef RAW_ENABLE
+    .send_raw_hid = pico_raw_hid_send,
+#endif
+};
 
-static void console_task(void) {
+__attribute__((weak)) void console_task(void) {
     // TODO
 }
 
-static void raw_hid_task(void) {
+__attribute__((weak)) void raw_hid_task(void) {
     // TODO
 }
 

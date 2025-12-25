@@ -33,8 +33,6 @@
 #include "device/usbd_pvt.h"
 #include "device/dcd.h"
 
-#include "usb_host_os_identifier.h"
-
 //--------------------------------------------------------------------+
 // USBD Configuration
 //--------------------------------------------------------------------+

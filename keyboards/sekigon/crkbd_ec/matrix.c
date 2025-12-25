@@ -7,9 +7,11 @@
 #include "matrix.h"
 #include "debug.h"
 #include "eeprom.h"
+#include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
 #include "split_util.h"
 #include "transport.h"
 #include "debounce.h"
+#include "quantum.h"
 
 #ifndef LOW_THRESHOLD
 #    define LOW_THRESHOLD 200
@@ -87,7 +89,7 @@ bool matrix_post_scan(void) {
         if (changed)
             memcpy(matrix + thatHand, slave_matrix, sizeof(slave_matrix));
 
-        matrix_scan_quantum();
+        matrix_scan_kb();
     } else {
         transport_slave(matrix + thatHand, matrix + thisHand);
 
@@ -99,10 +101,10 @@ bool matrix_post_scan(void) {
 
 uint8_t matrix_scan(void) {
     // Offset raw matrix to this hand to avoid clobbering the other half's rows.
-    bool changed =
-        matrix_scan_custom(raw_matrix + thisHand) || matrix_post_scan();
+    bool changed = matrix_scan_custom(raw_matrix + thisHand);
+    changed |= matrix_post_scan();
 
-    debounce(raw_matrix + thisHand, matrix + thisHand, ROWS_PER_HAND, changed);
+    changed = debounce(raw_matrix + thisHand, matrix + thisHand, changed);
 
     return changed;
 }

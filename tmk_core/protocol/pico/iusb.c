@@ -93,7 +93,18 @@ void send_consumer(uint16_t data) {
     tud_task();
 }
 
-void raw_hid_send(uint8_t *data, uint8_t length) {
+void send_extra(report_extra_t *report) {
+    while (!tud_hid_n_ready(ITF_NUM_HID_EXTRA)) {
+        tud_task();
+        if (!tud_ready()) {
+            return;
+        }
+    }
+    tud_hid_n_report(ITF_NUM_HID_EXTRA, report->report_id, &report->usage, sizeof(report->usage));
+    tud_task();
+}
+
+void pico_raw_hid_send(uint8_t *data, uint8_t length) {
     while (!tud_hid_n_ready(ITF_NUM_HID_RAW)) {
         tud_task();
         if (!tud_ready()) {

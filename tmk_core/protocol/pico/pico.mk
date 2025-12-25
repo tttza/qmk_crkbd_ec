@@ -25,4 +25,3 @@ VPATH += $(PICO_PROTOCOL_DIR)/lufa_utils
 ifeq ($(strip $(MIDI_ENABLE)), yes)
 	include $(TMK_PATH)/protocol/midi.mk
 endif
-

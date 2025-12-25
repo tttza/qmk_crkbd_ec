@@ -5,9 +5,9 @@
   "url": "https://nogikes.booth.pm/items/2371017",
   "processor": "RP2040",
   "bootloader": "rp2040",
-  "board": "GENERIC_PROMICRO_RP2040",
+  "board": "GENERIC_RP_RP2040",
   "features": {
-    "bootmagic": false,
+    "bootmagic": true,
     "extrakey": true,
     "mousekey": true,
     "console": true,

@@ -31,6 +31,7 @@
 #include "raw_hid.h"
 #include "bootloader.h"
 #include "debug.h"
+#include "host.h"
 
 #include "eeprom_pico.h"
 #include "usb_descriptors.h"
@@ -41,6 +42,7 @@
 
 void platform_setup(void);
 extern char __StackTop;
+extern host_driver_t driver;
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
@@ -83,6 +85,21 @@ void pico_cdc_enable_printf(void) {
 }
 void pico_cdc_disable_printf(void) {
     stdio_set_driver_enabled(&stdio_driver, false);
+}
+
+void protocol_pre_init(void) {}
+
+void protocol_post_init(void) {
+    host_set_driver(&driver);
+}
+
+void protocol_pre_task(void) {
+    tud_task();
+}
+
+void protocol_post_task(void) {
+    tud_task();
+    watchdog_update();
 }
 
 void protocol_setup(void) {
@@ -197,7 +214,7 @@ void tud_cdc_rx_cb(uint8_t itf) {
 // Application can use this to send the next report
 // Note: For composite reports, report[0] is report ID
 void tud_hid_report_complete_cb(uint8_t itf, uint8_t const* report,
-                                uint8_t len) {
+                                uint16_t len) {
     (void)itf;
     (void)len;
 }

@@ -25,3 +25,5 @@ void    send_keyboard(report_keyboard_t *report);
 void    send_mouse(report_mouse_t *report);
 void    send_system(uint16_t data);
 void    send_consumer(uint16_t data);
+void    send_extra(report_extra_t *report);
+void    pico_raw_hid_send(uint8_t *data, uint8_t length);

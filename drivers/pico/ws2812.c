@@ -32,7 +32,7 @@ static int ws2812_init(void) {
         return -1;
     }
 
-    ws2812_program_init(pio, sm, offset, RGB_DI_PIN, 800000, false);
+    ws2812_program_init(pio, sm, offset, WS2812_DI_PIN, 800000, false);
 
     return 0;
 }
