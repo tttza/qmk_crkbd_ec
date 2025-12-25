@@ -130,9 +130,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SPLIT_USB_TIMEOUT 3000
 #define SPLIT_USB_TIMEOUT_POLL 25
-// Temporarily disable split watchdog while debugging boot issues.
-// #define SPLIT_WATCHDOG_ENABLE
-// #define SPLIT_WATCHDOG_TIMEOUT 6000
+#define SPLIT_WATCHDOG_ENABLE
+#define SPLIT_WATCHDOG_TIMEOUT 6000
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is
  * not needed */

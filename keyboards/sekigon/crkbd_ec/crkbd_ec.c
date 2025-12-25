@@ -147,6 +147,9 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
     uint8_t *command_id = &(data[0]);
     uint8_t *value_data = &(data[1]);
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
+    uint8_t  layer = get_highest_layer(layer_state);
+#endif
     switch (*command_id) {
         case id_get_keyboard_value:
             if (data[1] == 0xec) {

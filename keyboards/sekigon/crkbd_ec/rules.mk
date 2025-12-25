@@ -21,13 +21,14 @@ WEAR_LEVELING_DRIVER = rp2040_flash
 
 SPLIT_KEYBOARD = yes
 RGBLIGHT_ENABLE = no
-RGB_MATRIX_ENABLE = no   # Temporarily disable to avoid ChibiOS-only WS2812 driver on pico platform
-# RGB_MATRIX_DRIVER = ws2812
+RGB_MATRIX_ENABLE = yes
+RGB_MATRIX_DRIVER = ws2812
+WS2812_DRIVER = custom
 
 
 VIA_ENABLE = yes
 # Match the old rp2040 branch behavior but stick to supported boolean.
-BOOTMAGIC_ENABLE = no       # Virtual DIP switch configuration
+BOOTMAGIC_ENABLE = yes      # Virtual DIP switch configuration
 MOUSEKEY_ENABLE = yes       # Mouse keys
 EXTRAKEY_ENABLE = yes       # Audio control and System control
 CONSOLE_ENABLE = yes        # Console for debug
