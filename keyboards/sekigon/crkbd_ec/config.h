@@ -34,13 +34,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Disable platform watchdog to avoid falling back to BOOTSEL on Xiao RP2040.
 #define PICO_WATCHDOG_TIMEOUT_MS 0
 
-/* USB Device descriptor parameter */
-#define VENDOR_ID 0xFEED
-#define PRODUCT_ID 0xC0EC
-#define DEVICE_VER 0x0001
-#define MANUFACTURER "sekigon-gonnoc"
-#define PRODUCT "Corne EC"
-
 /* key matrix size */
 #define MATRIX_ROWS 6
 #define MATRIX_COLS 7
@@ -73,7 +66,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #define MATRIX_ROW_PINS {26, 27, 28}
 #define MATRIX_COL_CHANNELS {0, 7, 1, 6, 2, 4, 3}
-#define UNUSED_PINS
 #define DISCHARGE_PIN 0
 #define ANALOG_PORT 29
 #define MUX_SEL_PINS {3, 4, 2}
