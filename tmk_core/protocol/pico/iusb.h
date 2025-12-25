@@ -1,4 +1,4 @@
-/* Copyright 2020 sekigon-gonnoc
+/* Copyright 2021 sekigon-gonnoc
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,25 +14,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "grs_70ec.h"
+#pragma once
 
-void led_on(void) {
-    setPinOutput(D2);
-    writePinHigh(D2);
-}
+#include <stdint.h>
+#include "report.h"
 
-void led_off(void) { writePinLow(D2); }
-
-void keyboard_post_init_kb() {
-    led_on();
-
-    keyboard_post_init_user();
-}
-
-void keyboard_pre_init_kb(void) {
-    // Turn on extern circuit
-    setPinOutput(F7);
-    writePinHigh(F7);
-
-    keyboard_pre_init_user();
-}
+/* declarations */
+uint8_t keyboard_leds(void);
+void    send_keyboard(report_keyboard_t *report);
+void    send_mouse(report_mouse_t *report);
+void    send_system(uint16_t data);
+void    send_consumer(uint16_t data);

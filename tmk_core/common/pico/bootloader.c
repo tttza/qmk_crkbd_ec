@@ -1,4 +1,4 @@
-/* Copyright 2020 sekigon-gonnoc
+/* Copyright 2021 sekigon-gonnoc
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,25 +14,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "grs_70ec.h"
+#include "pico/stdlib.h"
+#include "pico/bootrom.h"
 
-void led_on(void) {
-    setPinOutput(D2);
-    writePinHigh(D2);
-}
+#define FLASH_SIZE (FLASHEND + 1L)
 
-void led_off(void) { writePinLow(D2); }
+#if !defined(BOOTLOADER_SIZE)
+uint16_t bootloader_start;
+#endif
 
-void keyboard_post_init_kb() {
-    led_on();
-
-    keyboard_post_init_user();
-}
-
-void keyboard_pre_init_kb(void) {
-    // Turn on extern circuit
-    setPinOutput(F7);
-    writePinHigh(F7);
-
-    keyboard_pre_init_user();
+__attribute__((weak)) void bootloader_jump(void) {
+    reset_usb_boot(0, 0);
 }

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 sekigon-gonnoc
+Copyright 2021 sekigon-gonnoc
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,18 +21,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /* USB Device descriptor parameter */
 #define VENDOR_ID    0xFEED
-#define PRODUCT_ID   0x70EC
+#define PRODUCT_ID   0xEC20
 #define DEVICE_VER   0x0001
 #define MANUFACTURER sekigon-gonnoc
-#define PRODUCT      GRS-70EC
+#define PRODUCT      ECMX20
 
 /* key matrix size */
-#define MATRIX_ROWS 10
-#define MATRIX_COLS 8
+#define MATRIX_ROWS 6
+#define MATRIX_COLS 4
 
 /* EC switch threshold with hysteresis */
-#define HIGH_THRESHOLD 300
-#define LOW_THRESHOLD 200
+#define HIGH_THRESHOLD 500
+#define LOW_THRESHOLD 300
+
+// Set encoder push button as bootmagic switch
+#define BOOTMAGIC_LITE_ROW 5
+#define BOOTMAGIC_LITE_COLUMN 0
+
+// VIA config
+#define DYNAMIC_KEYMAP_LAYER_COUNT 8
+#define VIA_CUSTOM_LIGHTING_ENABLE
+#define EEPROM_ECS_THRESHOLD_ADDR (EECONFIG_HAPTIC)
+#define VIA_RGBLIGHT_USER_ADDR (EECONFIG_SIZE)
+#define EECONFIG_USER_SIZE (EECONFIG_SIZE + DYNAMIC_KEYMAP_LAYER_COUNT * 4)
+#define VIA_EEPROM_MAGIC_ADDR (EECONFIG_USER_SIZE * 4 + 1)
 
 /*
  * Keyboard Matrix Assignments
@@ -44,53 +56,46 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *                  ROW2COL = ROW = Anode (+), COL = Cathode (-, marked on diode)
  *
  */
-#define MATRIX_ROW_PINS { C6, D7, E6, B4, B5 }
-#define MATRIX_COL_CHANNELS { 2, 1, 0, 3, 5, 7, 6, 4 }
-#define UNUSED_PINS
+#define MATRIX_ROW_PINS { B5, B4, E6, D7, C6 }
+#define MATRIX_COL_PINS { S3, S0, S1, S2 }
 #define DISCHARGE_PIN B1
 #define ANALOG_PORT F6
 #define MUX_SEL_PINS { D1, D0, D4 }
+#define UNUSED_PINS
+#define ENCODERS_PAD_A { B3 }
+#define ENCODERS_PAD_B { B2 }
+#define ENCODER_RESOLUTION 4
 
 /* COL2ROW, ROW2COL */
 #define DIODE_DIRECTION COL2ROW
 
-/*
- * Split Keyboard specific options, make sure you have 'SPLIT_KEYBOARD = yes' in your rules.mk, and define SOFT_SERIAL_PIN.
- */
-#define SOFT_SERIAL_PIN D3  // or D1, D2, D3, E6
-#define EE_HANDS
-
-//#define BACKLIGHT_PIN B7
-//#define BACKLIGHT_LEVELS 3
-//#define BACKLIGHT_BREATHING
-
-//#define RGB_DI_PIN E2
-//#ifdef RGB_DI_PIN
-//#    define RGBLED_NUM 16
-//#    define RGBLIGHT_HUE_STEP 8
-//#    define RGBLIGHT_SAT_STEP 8
-//#    define RGBLIGHT_VAL_STEP 8
-//#    define RGBLIGHT_LIMIT_VAL 255 /* The maximum brightness level */
-//#    define RGBLIGHT_SLEEP  /* If defined, the RGB lighting will be switched off when the host goes to sleep */
+#define RGB_DI_PIN D2
+#ifdef RGB_DI_PIN
+#    define RGBLED_NUM 1
+#    define RGBLIGHT_HUE_STEP 8
+#    define RGBLIGHT_SAT_STEP 8
+#    define RGBLIGHT_VAL_STEP 8
+#    define RGBLIGHT_LIMIT_VAL 255 /* The maximum brightness level */
+#    define RGBLIGHT_SLEEP  /* If defined, the RGB lighting will be switched off when the host goes to sleep */
 /*== all animations enable ==*/
-//#    define RGBLIGHT_ANIMATIONS
+// #    define RGBLIGHT_ANIMATIONS
 /*== or choose animations ==*/
-//#    define RGBLIGHT_EFFECT_BREATHING
-//#    define RGBLIGHT_EFFECT_RAINBOW_MOOD
-//#    define RGBLIGHT_EFFECT_RAINBOW_SWIRL
-//#    define RGBLIGHT_EFFECT_SNAKE
-//#    define RGBLIGHT_EFFECT_KNIGHT
-//#    define RGBLIGHT_EFFECT_CHRISTMAS
-//#    define RGBLIGHT_EFFECT_STATIC_GRADIENT
-//#    define RGBLIGHT_EFFECT_RGB_TEST
-//#    define RGBLIGHT_EFFECT_ALTERNATING
+#    define RGBLIGHT_EFFECT_BREATHING
+// #    define RGBLIGHT_EFFECT_RAINBOW_MOOD
+// #    define RGBLIGHT_EFFECT_RAINBOW_SWIRL
+// #    define RGBLIGHT_EFFECT_SNAKE
+// #    define RGBLIGHT_EFFECT_KNIGHT
+// #    define RGBLIGHT_EFFECT_CHRISTMAS
+// #    define RGBLIGHT_EFFECT_STATIC_GRADIENT
+#    define RGBLIGHT_EFFECT_RGB_TEST
+// #    define RGBLIGHT_EFFECT_ALTERNATING
 /*== customize breathing effect ==*/
 /*==== (DEFAULT) use fixed table instead of exp() and sin() ====*/
-//#    define RGBLIGHT_BREATHE_TABLE_SIZE 256      // 256(default) or 128 or 64
+#    define RGBLIGHT_BREATHE_TABLE_SIZE 256      // 256(default) or 128 or 64
 /*==== use exp() and sin() ====*/
-//#    define RGBLIGHT_EFFECT_BREATHE_CENTER 1.85  // 1 to 2.7
-//#    define RGBLIGHT_EFFECT_BREATHE_MAX    255   // 0 to 255
-//#endif
+#    define RGBLIGHT_EFFECT_BREATHE_CENTER 1.85  // 1 to 2.7
+#    define RGBLIGHT_EFFECT_BREATHE_MAX    255   // 0 to 255
+#endif
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is not needed */
 #define DEBOUNCE 5

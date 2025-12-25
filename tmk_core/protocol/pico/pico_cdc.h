@@ -1,4 +1,4 @@
-/* Copyright 2020 sekigon-gonnoc
+/* Copyright 2021 sekigon-gonnoc
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,25 +14,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "grs_70ec.h"
+#pragma once
 
-void led_on(void) {
-    setPinOutput(D2);
-    writePinHigh(D2);
-}
+#include <stdint.h>
+#include <stdbool.h>
 
-void led_off(void) { writePinLow(D2); }
+void pico_cdc_enable_printf(void);
+void pico_cdc_disable_printf(void);
 
-void keyboard_post_init_kb() {
-    led_on();
-
-    keyboard_post_init_user();
-}
-
-void keyboard_pre_init_kb(void) {
-    // Turn on extern circuit
-    setPinOutput(F7);
-    writePinHigh(F7);
-
-    keyboard_pre_init_user();
-}
+// weak functions
+void pico_cdc_change_baudrate_cb(uint32_t baudrate);
+void pico_cdc_receive_cb(uint8_t const* buf, uint32_t cnt);
+bool pico_cdc_receive_kb(uint8_t const* buf, uint32_t cnt);
+void pico_cdc_on_connect(void);
+void pico_cdc_on_disconnect(void);

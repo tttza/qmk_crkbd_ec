@@ -1,4 +1,4 @@
-/* Copyright 2020 sekigon-gonnoc
+/* Copyright 2021 sekigon-gonnoc
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,25 +14,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "grs_70ec.h"
+#include "usb_util.h"
 
-void led_on(void) {
-    setPinOutput(D2);
-    writePinHigh(D2);
+#include "tusb.h"
+
+bool usb_connected_state(void) {
+    tud_task();
+    return tud_connected();
 }
-
-void led_off(void) { writePinLow(D2); }
-
-void keyboard_post_init_kb() {
-    led_on();
-
-    keyboard_post_init_user();
-}
-
-void keyboard_pre_init_kb(void) {
-    // Turn on extern circuit
-    setPinOutput(F7);
-    writePinHigh(F7);
-
-    keyboard_pre_init_user();
+void usb_disconnect(void) {
+#warning "No implementation" //TODO implement
 }

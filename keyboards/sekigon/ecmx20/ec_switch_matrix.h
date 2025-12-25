@@ -14,25 +14,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "grs_70ec.h"
+//
+// Scan EC switch matrix using 74HC7051
+// Define MUX_SEL_PINS, DISCHARGE_PIN, and ANALOG_PORT to compile
+//
 
-void led_on(void) {
-    setPinOutput(D2);
-    writePinHigh(D2);
-}
+#pragma once
 
-void led_off(void) { writePinLow(D2); }
+#include <stdint.h>
+#include <stdbool.h>
 
-void keyboard_post_init_kb() {
-    led_on();
+#include "matrix.h"
 
-    keyboard_post_init_user();
-}
+typedef struct {
+    uint16_t low_threshold;   // threshold for key release
+    uint16_t high_threshold;  // threshold for key press
+} ecsm_config_t;
 
-void keyboard_pre_init_kb(void) {
-    // Turn on extern circuit
-    setPinOutput(F7);
-    writePinHigh(F7);
+int      ecsm_init(ecsm_config_t const* const ecsm_config);
+void     ecsm_get_config(ecsm_config_t* ecsm_config);
+bool     ecsm_matrix_scan(matrix_row_t current_matrix[]);
+void     ecsm_dprint_matrix(void);
 
-    keyboard_pre_init_user();
-}
+#ifdef ECS_VELOCITY_ENABLED
+int16_t ecsm_get_velocity(uint8_t row, uint8_t col);
+void    ecsm_dprint_velocity(void);
+#endif

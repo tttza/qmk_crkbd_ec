@@ -18,17 +18,42 @@
 
 #include "quantum.h"
 #include "analog.h"
-#include "print.h"
+#include "atomic_util.h"
+#include "debug.h"
+
+// sensing channel definitions
+#define S0 0
+#define S1 1
+#define S2 2
+#define S3 3
+#define S4 4
+#define S5 5
+#define S6 6
+#define S7 7
+
+#if defined(PLATFORM_PICO)
+#    define WAIT_DISCHARGE()
+#    define WAIT_CHARGE() wait_us(4)
+#    define cli() __interrupt_disable__()
+#    define sei() __interrupt_enable__(NULL)
+#else
+#    define WAIT_DISCHARGE()
+#    define WAIT_CHARGE()
+#endif
 
 // pin connections
 const uint8_t row_pins[]     = MATRIX_ROW_PINS;
-const uint8_t col_channels[] = MATRIX_COL_CHANNELS;
+const uint8_t col_channels[] = MATRIX_COL_PINS;
 const uint8_t mux_sel_pins[] = MUX_SEL_PINS;
 
 _Static_assert(sizeof(mux_sel_pins) == 3, "invalid MUX_SEL_PINS");
 
 static ecsm_config_t config;
 static uint16_t      ecsm_sw_value[MATRIX_ROWS][MATRIX_COLS];
+
+#ifdef ECS_VELOCITY_ENABLED
+static int16_t velocity[MATRIX_ROWS][MATRIX_COLS];
+#endif
 
 static inline void discharge_capacitor(void) { setPinOutput(DISCHARGE_PIN); }
 static inline void charge_capacitor(uint8_t row) {
@@ -72,7 +97,9 @@ int ecsm_init(ecsm_config_t const* const ecsm_config) {
     setPinOutput(DISCHARGE_PIN);
 
     // set analog reference
-    analogReference(ADC_REF_POWER);
+#if !defined(PLATFORM_PICO)
+    analogReference(ADC_REF_INTERNAL);
+#endif
 
     // initialize drive lines
     init_row();
@@ -82,12 +109,20 @@ int ecsm_init(ecsm_config_t const* const ecsm_config) {
 
     // set discharge pin to charge mode
     setPinInput(DISCHARGE_PIN);
+#if defined(PLATFORM_PICO)
+    gpio_set_drive_strength(DISCHARGE_PIN, GPIO_DRIVE_STRENGTH_12MA);
+#endif
 
     return 0;
 }
 
+void ecsm_get_config(ecsm_config_t* ecsm_config) {
+    // Copy config
+    *ecsm_config = config;
+}
+
 // Read key value of key (row, col)
-uint16_t ecsm_readkey_raw(uint8_t row, uint8_t col) {
+static uint16_t ecsm_readkey_raw(uint8_t row, uint8_t col) {
     uint16_t sw_value = 0;
 
     discharge_capacitor();
@@ -96,9 +131,13 @@ uint16_t ecsm_readkey_raw(uint8_t row, uint8_t col) {
 
     clear_all_row_pins();
 
+    WAIT_DISCHARGE();
+
     cli();
 
     charge_capacitor(row);
+
+    WAIT_CHARGE();
 
     sw_value = analogReadPin(ANALOG_PORT);
 
@@ -108,7 +147,7 @@ uint16_t ecsm_readkey_raw(uint8_t row, uint8_t col) {
 }
 
 // Update press/release state of key at (row, col)
-bool ecsm_update_key(matrix_row_t* current_row, uint8_t col, uint16_t sw_value) {
+static bool ecsm_update_key(matrix_row_t* current_row, uint8_t col, uint16_t sw_value) {
     bool current_state = (*current_row >> col) & 1;
 
     // press to release
@@ -130,22 +169,71 @@ bool ecsm_update_key(matrix_row_t* current_row, uint8_t col, uint16_t sw_value) 
 bool ecsm_matrix_scan(matrix_row_t current_matrix[]) {
     bool updated = false;
 
+#ifdef ECS_VELOCITY_ENABLED
+    static uint16_t prev_time = 0;
+    static bool     first     = true;
+
+    uint16_t dt = timer_elapsed(prev_time);
+    while (dt == 0) {
+        dt = timer_elapsed(prev_time);
+    }
+#endif
+
     for (int col = 0; col < sizeof(col_channels); col++) {
         for (int row = 0; row < sizeof(row_pins); row++) {
+#ifdef ECS_VELOCITY_ENABLED
+            uint16_t current = ecsm_readkey_raw(row, col);
+
+            if (!first) {
+                int32_t current_velocity = ((int32_t)current - ecsm_sw_value[row][col]) * 100 / dt;
+                const uint8_t filt = 8;
+                velocity[row][col]       = (filt * (int32_t)velocity[row][col] + (10 - filt) * current_velocity) / 10;
+            } else {
+                first = false;
+            }
+
+            ecsm_sw_value[row][col] = current;
+#else
             ecsm_sw_value[row][col] = ecsm_readkey_raw(row, col);
+#endif
             updated |= ecsm_update_key(&current_matrix[row], col, ecsm_sw_value[row][col]);
         }
     }
 
+#ifdef ECS_VELOCITY_ENABLED
+    prev_time = timer_read();
+#endif
+
     return updated;
 }
 
-// Print key values
-void ecsm_print_matrix(void) {
+// Debug print key values
+void ecsm_dprint_matrix(void) {
     for (int row = 0; row < sizeof(row_pins); row++) {
         for (int col = 0; col < sizeof(col_channels); col++) {
-            xprintf("%4d", ecsm_sw_value[row][col]);
+            dprintf("%4d", ecsm_sw_value[row][col]);
+            if (col < sizeof(col_channels) - 1) {
+                dprintf(",");
+            }
         }
-        xprintf("\n");
+        dprintf("\n");
     }
+    dprintf("\n");
+    // dprintf("%d,%d,%d,%d,%d\n", ecsm_sw_value[0][0], ecsm_sw_value[0][1], ecsm_sw_value[0][2], ecsm_sw_value[0][3],ecsm_sw_value[1][1]);
 }
+
+#ifdef ECS_VELOCITY_ENABLED
+int16_t        ecsm_get_velocity(uint8_t row, uint8_t col) { return velocity[row][col]; }
+void           ecsm_dprint_velocity(void) {
+    for (int row = 0; row < sizeof(row_pins); row++) {
+        for (int col = 0; col < sizeof(col_channels); col++) {
+            dprintf("%4d", velocity[row][col]);
+            if (col < sizeof(col_channels) - 1) {
+                dprintf(",");
+            }
+        }
+        dprintf("\n");
+    }
+    dprintf("\n");
+}
+#endif

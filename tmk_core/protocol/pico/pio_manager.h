@@ -1,4 +1,4 @@
-/* Copyright 2020 sekigon-gonnoc
+/* Copyright 2021 sekigon-gonnoc
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,25 +14,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "grs_70ec.h"
+#pragma once
 
-void led_on(void) {
-    setPinOutput(D2);
-    writePinHigh(D2);
-}
+#include "hardware/pio.h"
 
-void led_off(void) { writePinLow(D2); }
-
-void keyboard_post_init_kb() {
-    led_on();
-
-    keyboard_post_init_user();
-}
-
-void keyboard_pre_init_kb(void) {
-    // Turn on extern circuit
-    setPinOutput(F7);
-    writePinHigh(F7);
-
-    keyboard_pre_init_user();
-}
+int32_t pio_manager_get_empty_sm(PIO pio);
+int32_t pio_manager_add_program(PIO pio, uint32_t sm,
+                                pio_program_t const* program);
