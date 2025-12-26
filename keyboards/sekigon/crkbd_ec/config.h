@@ -65,7 +65,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DIODE_DIRECTION COL2ROW
 
 // --- Split transport ---
-// Split transport on single wire (Xiao RP2040 GP1).
 // Run split PIO serial on PIO1 to avoid WS2812 contention on PIO0.
 #define SOFT_SERIAL_PIO_INDEX 1
 // Default to EE_HANDS + SPLIT_USB_DETECT unless build-time overrides are provided.
