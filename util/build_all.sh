@@ -11,8 +11,6 @@ variants=(
   "default|"
   "master_left|MASTER=left"
   "master_right|MASTER=right"
-  "ee_hands|EE_HANDS=1"
-  "right_master_usb_detect|MASTER=right SPLIT_USB_DETECT=yes EE_HANDS=1"
 )
 
 run_build() {

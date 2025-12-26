@@ -103,12 +103,12 @@ static bool xiao_pixel_ensure_ready(void) {
         xiao_pixel_power(true);
     }
 
-    // Prefer PIO1 to stay out of the way of the main underglow driver; fall back to PIO0 if needed.
-    if (xiao_pixel_try_init(pio1)) {
+    // Prefer PIO0 so soft-serial can keep PIO1 exclusively (Xiao RP2040 split link).
+    if (xiao_pixel_try_init(pio0)) {
         return true;
     }
 
-    if (xiao_pixel_try_init(pio0)) {
+    if (xiao_pixel_try_init(pio1)) {
         return true;
     }
 
