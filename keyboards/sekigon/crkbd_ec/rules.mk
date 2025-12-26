@@ -38,8 +38,6 @@ ifeq ($(MASTER),right)
 endif
 
 # --- Split / lighting ---
-SPLIT_KEYBOARD = yes
-
 # Re-enable RGB matrix (WS2812) now that split serial runs on PIO1.
 RGBLIGHT_ENABLE  = no
 RGB_MATRIX_ENABLE = yes
