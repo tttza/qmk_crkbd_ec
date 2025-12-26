@@ -36,11 +36,6 @@ void keyboard_post_init_kb() {
         dprintf("post_init master=%d left=%d\n", is_keyboard_master(),
             is_keyboard_left());
 
-    // Force handedness to match the compiled half on every boot so the slave
-    // cannot get stuck with stale EE_HANDS data from a previous flash.
-    extern uint8_t handness;
-    eeprom_update_byte(EECONFIG_HANDEDNESS, handness);
-
     keyboard_post_init_user();
 }
 
@@ -61,11 +56,9 @@ void matrix_scan_kb(void) {
     matrix_scan_user();
 }
 
-extern uint8_t handness;
 void           eeconfig_init_kb(void) {
     // reset threshold
     update_ecs_threshold(LOW_THRESHOLD, HIGH_THRESHOLD);
-    eeprom_update_byte(EECONFIG_HANDEDNESS, handness);
     eeconfig_init_user();
 }
 

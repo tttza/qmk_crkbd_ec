@@ -7,8 +7,8 @@ SRC += tmk_core/common/pico/print.c
 CFLAGS += -DPLATFORM_PICO=1
 CFLAGS += -DPICO_BOOTSEL_VIA_DOUBLE_RESET=0
 CFLAGS += -DPICO_WATCHDOG_TIMEOUT_MS=0
-# Match the rp2040 branch default (preset 1: ~230400 baud) that previously worked.
-OPT_DEFS += -DSELECT_SOFT_SERIAL_SPEED=1
+# Slow the soft-serial link for stability on Xiao RP2040 (preset 2: ~115200 baud).
+OPT_DEFS += -DSELECT_SOFT_SERIAL_SPEED=2
 
 # Use the SDK-generated bs2_default boot2 blob (legacy blob caused BOOTSEL).
 RP2040_BOOT2_USE_LEGACY = no
@@ -30,8 +30,7 @@ RGB_MATRIX_ENABLE = yes
 RGB_MATRIX_DRIVER = ws2812
 WS2812_DRIVER = custom
 
-# Stick to the rp2040-branch PIO-backed soft serial driver.
-SERIAL_DRIVER = bitbang
+# Keep soft-serial on PIO1 to avoid clashing with WS2812 on PIO0 (SOFT_SERIAL_PIO_INDEX is set in config.h).
 
 
 VIA_ENABLE = yes
@@ -49,15 +48,5 @@ BACKLIGHT_ENABLE = no       # Enable keyboard backlight functionality
 BLUETOOTH_ENABLE = no       # Enable Bluetooth
 AUDIO_ENABLE = no           # Audio output
 
-# Keep compile-time handedness and seed EE_HANDS EEPROM early so split_pre_init
-# sees the correct side even if EEPROM was stale.
-ifeq ($(HANDEDNESS),right)
-	SRC += handedness_right.c
-	OPT_DEFS += -DINIT_EE_HANDS_RIGHT
-	OPT_DEFS += -DMASTER_RIGHT
-else
-	SRC += handedness_left.c
-	OPT_DEFS += -DINIT_EE_HANDS_LEFT
-	OPT_DEFS += -DMASTER_LEFT
-endif
+# Use EE_HANDS for automatic side detection; no compile-time handedness overrides.
 

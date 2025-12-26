@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config_common.h"
 
-// Temporarily enable debug prints to observe split transport status.
-#define CRKBD_EC_DEBUG_DEFAULT 1
+// Default debug prints off; enable locally by setting to 1 when needed.
+#define CRKBD_EC_DEBUG_DEFAULT 0
 
 #if !defined(__ASSEMBLER__) && !defined(__cplusplus)
 #    include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
@@ -179,10 +179,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #define WS2812_TRST_US 200
 // #define WS2812_BYTE_ORDER WS2812_BYTE_ORDER_RGB
 
-#define SPLIT_USB_TIMEOUT 8000
+#define SPLIT_USB_TIMEOUT 3000
 #define SPLIT_USB_TIMEOUT_POLL 50
 #define SPLIT_WATCHDOG_ENABLE
-#define SPLIT_WATCHDOG_TIMEOUT 10000
+#define SPLIT_WATCHDOG_TIMEOUT 5000
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is
  * not needed */

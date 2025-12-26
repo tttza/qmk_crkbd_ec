@@ -1,3 +1,4 @@
+#ifndef SERIAL_PIO_VENDOR
 /*
  * WARNING: be careful changing this code, it is very timing dependent
  */
@@ -466,3 +467,5 @@ bool __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     restore_interrupts(interrupt_status);
     return true;
 }
+
+    #endif // SERIAL_PIO_VENDOR
