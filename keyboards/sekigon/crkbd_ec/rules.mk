@@ -9,6 +9,16 @@ CFLAGS += -DPICO_BOOTSEL_VIA_DOUBLE_RESET=0
 CFLAGS += -DPICO_WATCHDOG_TIMEOUT_MS=0
 # Slow the soft-serial link for stability on Xiao RP2040 (preset 2: ~115200 baud).
 OPT_DEFS += -DSELECT_SOFT_SERIAL_SPEED=2
+# Master selection shortcuts: set SPLIT_USB_DETECT=yes or MASTER=left/right when invoking qmk.
+ifneq ($(filter yes 1,$(SPLIT_USB_DETECT)),)
+	OPT_DEFS += -DSPLIT_USB_DETECT
+endif
+ifeq ($(MASTER),left)
+	OPT_DEFS += -DMASTER_LEFT
+endif
+ifeq ($(MASTER),right)
+	OPT_DEFS += -DMASTER_RIGHT
+endif
 
 # Use the SDK-generated bs2_default boot2 blob (legacy blob caused BOOTSEL).
 RP2040_BOOT2_USE_LEGACY = no

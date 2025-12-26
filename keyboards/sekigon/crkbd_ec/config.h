@@ -71,9 +71,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define SOFT_SERIAL_PIN GP1
 // Run split PIO serial on PIO1 to avoid WS2812 contention on PIO0.
 #define SOFT_SERIAL_PIO_INDEX 1
-// Use VBUS edge to decide master immediately (no SPLIT_USB_DETECT wait loop).
-
-#define EE_HANDS
+// Split master selection strategy:
+// - If fixed handedness is not requested at build time, enable both EE_HANDS
+//   and SPLIT_USB_DETECT. EE_HANDS lets you flash a right-hand image once and
+//   then keep using a common firmware; SPLIT_USB_DETECT keeps fast USB init and
+//   allows running the right half as master when USB is attached there.
+// - You can still force MASTER=left/right at build time to lock roles.
+#if !defined(MASTER_LEFT) && !defined(MASTER_RIGHT)
+#    if !defined(EE_HANDS)
+#        define EE_HANDS
+#    endif
+#    if !defined(SPLIT_USB_DETECT)
+#        define SPLIT_USB_DETECT
+#    endif
+#endif
 
 #define WS2812_DI_PIN GP7
 #define RGBLED_NUM 42
