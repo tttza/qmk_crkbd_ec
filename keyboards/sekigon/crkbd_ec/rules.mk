@@ -34,6 +34,7 @@ WS2812_DRIVER = custom
 
 
 VIA_ENABLE = yes
+SECURE_ENABLE = yes
 # Match the old rp2040 branch behavior but stick to supported boolean.
 BOOTMAGIC_ENABLE = yes      # Virtual DIP switch configuration
 MOUSEKEY_ENABLE = yes       # Mouse keys
