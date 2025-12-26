@@ -16,6 +16,8 @@
 #include "split_util.h"
 #include <string.h>
 
+#define ROWS_PER_HAND (MATRIX_ROWS / 2)
+
 // Align custom lighting command IDs with VIA custom commands
 enum {
     id_lighting_set_value = id_custom_set_value,
@@ -31,13 +33,42 @@ static uint32_t debug_heartbeat_timer __attribute__((unused)) = 0;
 static bool     console_ready_logged __attribute__((unused))  = false;
 static uint32_t last_matrix_change_ms                        = 0;
 static bool     stuck_key_alert                              = false;
+static xiao_rgb_t stuck_key_color                            = {120, 120, 0};
 
 extern user_config_t user_config;
 
 extern matrix_row_t raw_matrix[MATRIX_ROWS];
 extern matrix_row_t matrix[MATRIX_ROWS];
 
-static matrix_row_t last_scan_state[MATRIX_ROWS] = {0};
+static matrix_row_t last_local_state[ROWS_PER_HAND] = {0};
+
+static uint8_t local_row_offset(void) { return is_keyboard_left() ? 0 : ROWS_PER_HAND; }
+
+// Return the lowest (physically bottom) active row on this half, or -1 if none.
+static int8_t bottommost_active_row(const matrix_row_t *state) {
+    int8_t row_found = -1;
+    for (uint8_t r = 0; r < ROWS_PER_HAND; r++) {
+        if (state[r]) {
+            row_found = (int8_t)r;
+        }
+    }
+
+    return row_found;
+}
+
+static xiao_rgb_t stuck_row_color(int8_t row) {
+    static const xiao_rgb_t palette[ROWS_PER_HAND] = {
+        {160, 0, 40},   // top row hint
+        {120, 120, 0},  // middle row hint
+        {0, 140, 140},  // bottom row hint
+    };
+
+    if (row >= 0 && row < (int8_t)ROWS_PER_HAND) {
+        return palette[row];
+    }
+
+    return (xiao_rgb_t){120, 120, 0};
+}
 
 static void update_ecs_threshold(uint16_t low, uint16_t high);
 void matrix_slave_scan_user(void);
@@ -74,23 +105,20 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
     xiao_status_led_set_layer(layer_state);
     xiao_status_led_set_host_leds(host_keyboard_led_state());
 
-    // Merge local raw rows with debounced matrix rows so master can also see
-    // keys pressed on the slave half. Local hand stays fresh via raw_matrix,
-    // while the other half comes from the transported debounced matrix.
-    matrix_row_t scan_state[MATRIX_ROWS];
-    memcpy(scan_state, raw_matrix, sizeof(scan_state));
-    for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
-        scan_state[r] |= matrix[r];
+    const uint8_t  row_offset = local_row_offset();
+    matrix_row_t   local_state[ROWS_PER_HAND];
+    for (uint8_t r = 0; r < ROWS_PER_HAND; r++) {
+        local_state[r] = raw_matrix[row_offset + r] | matrix[row_offset + r];
     }
 
-    // Stuck-key detection: if the merged matrix is unchanged and non-empty
-    // for longer than the threshold, raise an alert.
+    // Stuck-key detection: if the local matrix is unchanged and non-empty
+    // for longer than the threshold, raise an alert only on this half.
     const uint32_t now_ms      = timer_read32();
-    const bool     raw_changed = memcmp(last_scan_state, scan_state, sizeof(last_scan_state)) != 0;
+    const bool     raw_changed = memcmp(last_local_state, local_state, sizeof(last_local_state)) != 0;
     const bool     any_pressed = ({
         bool pressed = false;
-        for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
-            if (scan_state[r]) {
+        for (uint8_t r = 0; r < ROWS_PER_HAND; r++) {
+            if (local_state[r]) {
                 pressed = true;
                 break;
             }
@@ -99,7 +127,7 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
     });
 
     if (raw_changed) {
-        memcpy(last_scan_state, scan_state, sizeof(last_scan_state));
+        memcpy(last_local_state, local_state, sizeof(last_local_state));
         last_matrix_change_ms = now_ms;
         if (stuck_key_alert) {
             stuck_key_alert = false;
@@ -109,7 +137,9 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
         const uint32_t STUCK_MS = 5000;  // 5 seconds before flagging
         if (!stuck_key_alert && timer_elapsed32(last_matrix_change_ms) > STUCK_MS) {
             stuck_key_alert = true;
-            xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);  // blink yellow on NeoPixel
+            const int8_t row_hint = bottommost_active_row(local_state);
+            stuck_key_color       = stuck_row_color(row_hint);
+            xiao_status_led_set_status(stuck_key_color, true);  // blink per-row color on NeoPixel
         }
     } else {
         // No keys active and no change: keep timer fresh to avoid stale alert.
@@ -138,7 +168,7 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
 
     // NeoPixel: only used for stuck-key blink; otherwise follow layer color.
     if (stuck_key_alert) {
-        xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);
+        xiao_status_led_set_status(stuck_key_color, true);
     } else {
         xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
     }

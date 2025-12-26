@@ -14,7 +14,7 @@
 #    define XIAO_STATUS_LED_ACTIVE_HIGH 1
 #endif
 
-#define XIAO_STATUS_BLINK_MS 800  // blink period for alerts
+#define XIAO_STATUS_BLINK_MS 500  // blink period for alerts
 
 #define XIAO_LAYER_COLOR_COUNT 4
 
