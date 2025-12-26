@@ -42,7 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MATRIX_COLS 7
 
 /* EC switch threshold with hysteresis */
-#define HIGH_THRESHOLD 1200
+#define HIGH_THRESHOLD 800
 #define LOW_THRESHOLD 600
 
 // VIA config
