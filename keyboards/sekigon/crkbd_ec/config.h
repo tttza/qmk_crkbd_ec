@@ -19,6 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "config_common.h"
 
+// Temporarily enable debug prints to observe split transport status.
+#define CRKBD_EC_DEBUG_DEFAULT 1
+
 #if !defined(__ASSEMBLER__) && !defined(__cplusplus)
 #    include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
 #endif
@@ -54,16 +57,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     (VIA_RGBLIGHT_USER_ADDR + \
      DYNAMIC_KEYMAP_LAYER_COUNT * 4)  // Layer * 4bytes(RGB Light config)
 
-/*
- * Keyboard Matrix Assignments
- *
- * Change this to how you wired your keyboard
- * COLS: AVR pins used for columns, left to right
- * ROWS: AVR pins used for rows, top to bottom
- * DIODE_DIRECTION: COL2ROW = COL = Anode (+), ROW = Cathode (-, marked on
- * diode) ROW2COL = ROW = Anode (+), COL = Cathode (-, marked on diode)
- *
- */
+/* Keyboard Matrix Assignments */
 #define MATRIX_ROW_PINS {26, 27, 28}
 #define MATRIX_COL_CHANNELS {0, 7, 1, 6, 2, 4, 3}
 #define DISCHARGE_PIN 0
@@ -73,7 +67,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /* COL2ROW, ROW2COL */
 #define DIODE_DIRECTION COL2ROW
 
+// Split transport on single wire (Xiao RP2040 GP1).
 #define SOFT_SERIAL_PIN GP1
+// Run split PIO serial on PIO1 to avoid WS2812 contention on PIO0.
+#define SOFT_SERIAL_PIO_INDEX 1
+#ifndef SPLIT_USB_DETECT
+#    define SPLIT_USB_DETECT
+#endif
+
 #define EE_HANDS
 
 #define WS2812_DI_PIN GP7
@@ -178,10 +179,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #define WS2812_TRST_US 200
 // #define WS2812_BYTE_ORDER WS2812_BYTE_ORDER_RGB
 
-#define SPLIT_USB_TIMEOUT 3000
-#define SPLIT_USB_TIMEOUT_POLL 25
+#define SPLIT_USB_TIMEOUT 8000
+#define SPLIT_USB_TIMEOUT_POLL 50
 #define SPLIT_WATCHDOG_ENABLE
-#define SPLIT_WATCHDOG_TIMEOUT 6000
+#define SPLIT_WATCHDOG_TIMEOUT 10000
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is
  * not needed */
@@ -241,6 +242,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #define NO_ACTION_ONESHOT
 
 /* disable these deprecated features by default */
+
+/* Bootmagic Lite key configuration */
+// #define BOOTMAGIC_LITE_ROW 0
+// #define BOOTMAGIC_LITE_COLUMN 0
 
 /* Bootmagic Lite key configuration */
 // #define BOOTMAGIC_LITE_ROW 0

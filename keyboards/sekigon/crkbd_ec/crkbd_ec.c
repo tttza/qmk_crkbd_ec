@@ -8,6 +8,7 @@
 #include "eeconfig.h"
 #include "raw_hid.h"
 #include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
+#include "tusb.h"
 
 // Align custom lighting command IDs with VIA custom commands
 enum {
@@ -20,14 +21,44 @@ enum {
 #    define CRKBD_EC_DEBUG_DEFAULT 0
 #endif
 
+static uint32_t debug_heartbeat_timer = 0;
+static bool     console_ready_logged  = false;
+
 static void update_ecs_threshold(uint16_t low, uint16_t high);
 
 void keyboard_post_init_kb() {
 #if CRKBD_EC_DEBUG_DEFAULT
     debug_enable = true;
+    debug_matrix = true;
 #endif
 
+    // Log master/hand detection after split_pre_init has run.
+        dprintf("post_init master=%d left=%d\n", is_keyboard_master(),
+            is_keyboard_left());
+
+    // Force handedness to match the compiled half on every boot so the slave
+    // cannot get stuck with stale EE_HANDS data from a previous flash.
+    extern uint8_t handness;
+    eeprom_update_byte(EECONFIG_HANDEDNESS, handness);
+
     keyboard_post_init_user();
+}
+
+void matrix_scan_kb(void) {
+#if CRKBD_EC_DEBUG_DEFAULT
+    if (!console_ready_logged && tud_ready()) {
+        console_ready_logged = true;
+        dprintf("console up master=%d left=%d\n", is_keyboard_master(),
+                is_keyboard_left());
+    }
+
+    if (timer_elapsed32(debug_heartbeat_timer) > 1000) {
+        debug_heartbeat_timer = timer_read32();
+        dprintf("alive master=%d left=%d\n", is_keyboard_master(),
+                is_keyboard_left());
+    }
+#endif
+    matrix_scan_user();
 }
 
 extern uint8_t handness;

@@ -26,3 +26,11 @@ void usb_disconnect(void) {
     // TinyUSB provides bus disconnect for force re-enumeration when needed.
     tud_disconnect();
 }
+
+// Detect USB VBUS presence/active connection for SPLIT_USB_DETECT master pick.
+// When the board is not plugged into a host, TinyUSB reports disconnected, so
+// the half will become the slave.
+bool usb_vbus_state(void) {
+    tud_task();
+    return tud_connected();
+}

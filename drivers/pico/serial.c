@@ -6,6 +6,8 @@
 #include "serial.h"
 #include "wait.h"
 
+#include "debug.h"
+
 #include "uart_tx.pio.h"
 #include "uart_rx.pio.h"
 #include "pio_manager.h"
@@ -19,6 +21,20 @@
 #ifndef SELECT_SOFT_SERIAL_SPEED
 #    define SELECT_SOFT_SERIAL_SPEED 1
 // TODO: correct speeds...
+#endif
+
+// Enable debug for troubleshooting split transport (turn off once stable).
+// Debug printing from IRQs is very timing sensitive; keep it off unless
+// actively diagnosing the link layer.
+#ifndef SERIAL_DEBUG_LOG
+#    define SERIAL_DEBUG_LOG 0
+#endif
+#if SERIAL_DEBUG_LOG
+#    define SDPRINTLN(msg) dprintln(msg)
+#    define SDPRINTF(...) dprintf(__VA_ARGS__)
+#else
+#    define SDPRINTLN(msg)
+#    define SDPRINTF(...)
 #endif
 
 // Serial pulse period in microseconds. At the moment, going lower than 12
@@ -69,7 +85,12 @@ inline static void serial_high(void) { writePinHigh(SOFT_SERIAL_PIN); }
 
 static void interrupt_handler(uint gpio, uint32_t events);
 
-static PIO  pio = pio0;
+// Allow choosing PIO instance to avoid conflicts with other PIO users (e.g. WS2812).
+#ifndef SOFT_SERIAL_PIO_INDEX
+#    define SOFT_SERIAL_PIO_INDEX 0
+#endif
+
+static PIO  pio = (SOFT_SERIAL_PIO_INDEX == 1) ? pio1 : pio0;
 static uint sm_tx, sm_rx;
 
 inline static void soft_serial_disable_rx(void) {
@@ -100,7 +121,10 @@ static void soft_serial_enable_tx(void) {
 inline static int soft_serial_pio_init(void) {
     sm_rx = pio_manager_get_empty_sm(pio);
 
-    if (sm_rx < 0) return -1;
+    if (sm_rx < 0) {
+        SDPRINTLN("serial: no rx sm");
+        return -1;
+    }
 
     int32_t offset = pio_manager_add_program(pio, sm_rx, &uart_rx_mini_program);
 
@@ -111,7 +135,10 @@ inline static int soft_serial_pio_init(void) {
 
     sm_tx = pio_manager_get_empty_sm(pio);
 
-    if (sm_tx < 0) return -1;
+    if (sm_tx < 0) {
+        SDPRINTLN("serial: no tx sm");
+        return -1;
+    }
 
     offset = pio_manager_add_program(pio, sm_tx, &uart_tx_program);
 
@@ -130,6 +157,8 @@ void soft_serial_initiator_init(void) {
 
     serial_output();
     serial_high();
+
+    SDPRINTLN("soft_serial initiator");
 }
 
 // Initialize slave
@@ -140,6 +169,8 @@ void soft_serial_target_init(void) {
     gpio_set_irq_enabled_with_callback(SOFT_SERIAL_PIN, GPIO_IRQ_EDGE_FALL,
                                        true, interrupt_handler);
     irq_set_priority(IO_IRQ_BANK0, PICO_HIGHEST_IRQ_PRIORITY);
+
+    SDPRINTLN("soft_serial target");
 }
 
 // Used by the master to synchronize timing with the slave.
@@ -152,7 +183,7 @@ static int __no_inline_not_in_flash_func(sync_recv)(void) {
     }
 
     if (time_us_64() >= timeout) {
-        // dprintf("serial::NO_RESPONSE1\n");
+        SDPRINTLN("serial::NO_RESPONSE1");
         return -1;
     }
 
@@ -162,7 +193,7 @@ static int __no_inline_not_in_flash_func(sync_recv)(void) {
     }
 
     if (time_us_64() >= timeout) {
-        // dprintf("serial::NO_RESPONSE2\n");
+        SDPRINTLN("serial::NO_RESPONSE2");
         return -2;
     }
 
@@ -184,6 +215,7 @@ static void __no_inline_not_in_flash_func(sync_send)(void) {
 
 // Reads a byte from the serial line
 static uint16_t __attribute__((noinline)) serial_read_byte(void) {
+    // Match the tighter timeout from the old rp2040 branch (worked on Xiao).
     uint64_t timeout = time_us_64() + 10000;
     while (pio_sm_is_rx_fifo_empty(pio, sm_rx) && (time_us_64() < timeout)) {
         tight_loop_contents();
@@ -214,6 +246,8 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
     if (gpio != SOFT_SERIAL_PIN || events != GPIO_IRQ_EDGE_FALL) {
         return;
     }
+
+    SDPRINTLN("irq start");
 
     uint32_t interrupt_status = save_and_disable_interrupts();
 
@@ -281,21 +315,18 @@ static void __no_inline_not_in_flash_func(interrupt_handler)(uint gpio, uint32_t
         }
         checksum_computed ^= 7;
         checksum_received = serial_read_byte();
+        (void)checksum_received;
     } while (0);
-
-    if (receive_res == 0 && checksum_computed != checksum_received) {
-        receive_res = -1;
-    }
 
     soft_serial_disable_rx();
 
+    // Abort cleanly on obvious protocol errors (e.g. invalid ID) to avoid
+    // dereferencing an uninitialized transaction pointer.
     if (receive_res < 0) {
-        // receive timeout error
         serial_input();
         gpio_set_irq_enabled_with_callback(SOFT_SERIAL_PIN, GPIO_IRQ_EDGE_FALL,
                                            true, interrupt_handler);
         restore_interrupts(interrupt_status);
-
         return;
     }
 
@@ -344,6 +375,8 @@ bool __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     if (sstd_index > NUM_TOTAL_TRANSACTIONS) return false;
     split_transaction_desc_t *trans = &split_transaction_table[sstd_index];
 
+    SDPRINTF("tx start id=%d\n", sstd_index);
+
     // TODO: remove extra delay between transactions
     serial_delay();
 
@@ -358,7 +391,8 @@ bool __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
 
     // wait for the slaves response
     if (sync_recv() != 0) {
-        // dprintf("NACK 1\n");
+        SDPRINTLN("NACK 1");
+        uprintf("serial n1\n");
         restore_interrupts(interrupt_status);
         return false;
     }
@@ -374,7 +408,8 @@ bool __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     soft_serial_disable_tx();
 
     if (sync_recv() != 0) {
-        // dprintf("NACK 1.5\n");
+        SDPRINTLN("NACK 1.5");
+        uprintf("serial n1.5\n");
         restore_interrupts(interrupt_status);
         return false;
     }
@@ -393,7 +428,8 @@ bool __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     soft_serial_disable_tx();
 
     if (sync_recv() != 0) {
-        // dprintf("NACK 2\n");
+        SDPRINTLN("NACK 2");
+        uprintf("serial n2\n");
         restore_interrupts(interrupt_status);
         return false;
     }
@@ -413,8 +449,9 @@ bool __no_inline_not_in_flash_func(soft_serial_transaction)(int sstd_index) {
     soft_serial_disable_rx();
 
     if ((checksum_computed) != (checksum_received)) {
-        dprintf("serial::FAIL[%u,%u,%u]\n", checksum_computed,
-                checksum_received, sstd_index);
+        SDPRINTF("serial::FAIL[%u,%u,%u]\n", checksum_computed,
+            checksum_received, sstd_index);
+        uprintf("serial fail %u/%u id=%u\n", checksum_computed, checksum_received, sstd_index);
         serial_output();
         serial_high();
 

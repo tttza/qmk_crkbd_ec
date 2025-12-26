@@ -23,10 +23,9 @@
  */
 #pragma once
 
-#include <stdio.h>
-#include "pico/stdlib.h"
+#include <stdarg.h>
+#include <stdint.h>
 
-// Provide platform xprintf/xputc hooks; quantum/logging/print.h defines the
-// public print/uprint macros using these.
-#define xprintf(...) printf(__VA_ARGS__)
-#define xputc(c) putc(c, stdout)
+// Provide platform xprintf/xputc hooks backed by HID console sendchar.
+int xprintf(const char *fmt, ...);
+int xputc(int c);

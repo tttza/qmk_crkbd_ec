@@ -15,6 +15,9 @@
  * GPL v2 or later.
  */
 
+#include <stdbool.h>
+#include <string.h>
+
 /* TMK includes */
 #include "report.h"
 #include "host.h"
@@ -50,6 +53,8 @@
 #include "wait.h"
 
 #include "iusb.h"
+#include "tusb.h"
+#include "usb_descriptors.h"
 
 /* host struct */
 host_driver_t driver = {
@@ -63,9 +68,54 @@ host_driver_t driver = {
 #endif
 };
 
-__attribute__((weak)) void console_task(void) {
-    // TODO
+#ifdef CONSOLE_ENABLE
+static uint8_t console_buffer[CONSOLE_EPSIZE];
+static uint8_t console_count = 0;
+
+static bool pico_console_flush(void) {
+    if (console_count == 0) {
+        return true;
+    }
+
+    tud_task();
+    if (!tud_ready()) {
+        return false;
+    }
+
+    if (!tud_hid_n_ready(ITF_NUM_HID_CONSOLE)) {
+        tud_task();
+        if (!tud_hid_n_ready(ITF_NUM_HID_CONSOLE)) {
+            return false;
+        }
+    }
+
+    uint8_t report[CONSOLE_EPSIZE] = {0};
+    memcpy(report, console_buffer, console_count);
+    tud_hid_n_report(ITF_NUM_HID_CONSOLE, 0, report, sizeof(report));
+    tud_task();
+    console_count = 0;
+    return true;
 }
+
+int8_t sendchar(uint8_t c) {
+    if (console_count >= sizeof(console_buffer)) {
+        if (!pico_console_flush()) {
+            return -1;
+        }
+    }
+
+    if (console_count < sizeof(console_buffer)) {
+        console_buffer[console_count++] = c;
+    }
+
+    pico_console_flush();
+    return 0;
+}
+
+void console_task(void) {
+    pico_console_flush();
+}
+#endif
 
 __attribute__((weak)) void raw_hid_task(void) {
     // TODO
