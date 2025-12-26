@@ -35,8 +35,116 @@ static bool     stuck_key_alert                              = false;
 extern user_config_t user_config;
 
 extern matrix_row_t raw_matrix[MATRIX_ROWS];
+extern matrix_row_t matrix[MATRIX_ROWS];
+
+static matrix_row_t last_scan_state[MATRIX_ROWS] = {0};
 
 static void update_ecs_threshold(uint16_t low, uint16_t high);
+void matrix_slave_scan_user(void);
+
+static void run_user_scan_hooks(bool is_slave) {
+    if (is_slave) {
+        matrix_slave_scan_user();
+    }
+
+    matrix_scan_user();
+}
+
+static void crkbd_ec_matrix_scan(bool is_slave) {
+#if CRKBD_EC_DEBUG_DEFAULT
+    if (!is_slave) {
+        if (!console_ready_logged && tud_ready()) {
+            console_ready_logged = true;
+            dprintf("console up master=%d left=%d\n", is_keyboard_master(),
+                    is_keyboard_left());
+        }
+
+        if (timer_elapsed32(debug_heartbeat_timer) > 1000) {
+            debug_heartbeat_timer = timer_read32();
+            dprintf("alive master=%d left=%d\n", is_keyboard_master(),
+                    is_keyboard_left());
+        }
+    }
+#endif
+
+    run_user_scan_hooks(is_slave);
+
+    // Refresh layer/host LED state locally on both halves so the slave sees the
+    // same indicators as the master.
+    xiao_status_led_set_layer(layer_state);
+    xiao_status_led_set_host_leds(host_keyboard_led_state());
+
+    // Merge local raw rows with debounced matrix rows so master can also see
+    // keys pressed on the slave half. Local hand stays fresh via raw_matrix,
+    // while the other half comes from the transported debounced matrix.
+    matrix_row_t scan_state[MATRIX_ROWS];
+    memcpy(scan_state, raw_matrix, sizeof(scan_state));
+    for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+        scan_state[r] |= matrix[r];
+    }
+
+    // Stuck-key detection: if the merged matrix is unchanged and non-empty
+    // for longer than the threshold, raise an alert.
+    const uint32_t now_ms      = timer_read32();
+    const bool     raw_changed = memcmp(last_scan_state, scan_state, sizeof(last_scan_state)) != 0;
+    const bool     any_pressed = ({
+        bool pressed = false;
+        for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+            if (scan_state[r]) {
+                pressed = true;
+                break;
+            }
+        }
+        pressed;
+    });
+
+    if (raw_changed) {
+        memcpy(last_scan_state, scan_state, sizeof(last_scan_state));
+        last_matrix_change_ms = now_ms;
+        if (stuck_key_alert) {
+            stuck_key_alert = false;
+            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+        }
+    } else if (any_pressed) {
+        const uint32_t STUCK_MS = 5000;  // 5 seconds before flagging
+        if (!stuck_key_alert && timer_elapsed32(last_matrix_change_ms) > STUCK_MS) {
+            stuck_key_alert = true;
+            xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);  // blink yellow on NeoPixel
+        }
+    } else {
+        // No keys active and no change: keep timer fresh to avoid stale alert.
+        last_matrix_change_ms = now_ms;
+        if (stuck_key_alert) {
+            stuck_key_alert = false;
+            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+        }
+    }
+
+    // User LED status priority (discrete LEDs): USB error (red) > split error (green) > US mode (blue).
+    uint8_t user_status_mask = 0;
+    bool    usb_ready        = is_keyboard_master() ? tud_ready() : true;
+    bool    split_ok         = is_keyboard_master() ? is_transport_connected() : true;
+    bool    us_mode          = !user_config.jis;
+
+    if (!usb_ready) {
+        user_status_mask = 0x01;  // red
+    } else if (!split_ok) {
+        user_status_mask = 0x02;  // green
+    } else if (us_mode) {
+        user_status_mask = 0x04;  // blue
+    }
+
+    xiao_status_led_set_alert(user_status_mask);
+
+    // NeoPixel: only used for stuck-key blink; otherwise follow layer color.
+    if (stuck_key_alert) {
+        xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);
+    } else {
+        xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+    }
+
+    xiao_status_led_task();
+}
 
 static void apply_ec_thresholds(uint16_t low_th, uint16_t high_th) {
     ecsm_config_t config;
@@ -84,84 +192,9 @@ void keyboard_post_init_kb() {
     keyboard_post_init_user();
 }
 
-void matrix_scan_kb(void) {
-#if CRKBD_EC_DEBUG_DEFAULT
-    if (!console_ready_logged && tud_ready()) {
-        console_ready_logged = true;
-        dprintf("console up master=%d left=%d\n", is_keyboard_master(),
-                is_keyboard_left());
-    }
+void matrix_scan_kb(void) { crkbd_ec_matrix_scan(false); }
 
-    if (timer_elapsed32(debug_heartbeat_timer) > 1000) {
-        debug_heartbeat_timer = timer_read32();
-        dprintf("alive master=%d left=%d\n", is_keyboard_master(),
-                is_keyboard_left());
-    }
-#endif
-    matrix_scan_user();
-
-    // Stuck-key detection: if the raw matrix is unchanged and non-empty for longer than the threshold, raise an alert.
-    static matrix_row_t last_raw[MATRIX_ROWS] = {0};
-    const uint32_t      now_ms                = timer_read32();
-    const bool          raw_changed           = memcmp(last_raw, raw_matrix, sizeof(last_raw)) != 0;
-    const bool          any_pressed = ({
-        bool pressed = false;
-        for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
-            if (raw_matrix[r]) {
-                pressed = true;
-                break;
-            }
-        }
-        pressed;
-    });
-
-    if (raw_changed) {
-        memcpy(last_raw, raw_matrix, sizeof(last_raw));
-        last_matrix_change_ms = now_ms;
-        if (stuck_key_alert) {
-            stuck_key_alert = false;
-            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
-        }
-    } else if (any_pressed) {
-        const uint32_t STUCK_MS = 5000;  // 5 seconds before flagging
-        if (!stuck_key_alert && timer_elapsed32(last_matrix_change_ms) > STUCK_MS) {
-            stuck_key_alert = true;
-            xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);  // blink yellow on NeoPixel
-        }
-    } else {
-        // No keys active and no change: keep timer fresh to avoid stale alert.
-        last_matrix_change_ms = now_ms;
-        if (stuck_key_alert) {
-            stuck_key_alert = false;
-            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
-        }
-    }
-
-    // User LED status priority (discrete LEDs): USB error (red) > split error (green) > US mode (blue).
-    uint8_t user_status_mask = 0;
-    bool    usb_ready        = tud_ready();
-    bool    split_ok         = is_transport_connected();
-    bool    us_mode          = !user_config.jis;
-
-    if (!usb_ready) {
-        user_status_mask = 0x01;  // red
-    } else if (!split_ok) {
-        user_status_mask = 0x02;  // green
-    } else if (us_mode) {
-        user_status_mask = 0x04;  // blue
-    }
-
-    xiao_status_led_set_alert(user_status_mask);
-
-    // NeoPixel: only used for stuck-key blink; otherwise follow layer color.
-    if (stuck_key_alert) {
-        xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);
-    } else {
-        xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
-    }
-
-    xiao_status_led_task();
-}
+void matrix_slave_scan_kb(void) { crkbd_ec_matrix_scan(true); }
 
 void           eeconfig_init_kb(void) {
     // reset threshold
