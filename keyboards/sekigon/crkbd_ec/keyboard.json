@@ -14,7 +14,7 @@
   "split": {
     "enabled": true,
     "transport": { "protocol": "serial" },
-    "serial": { "pin": "GP1", "speed": 3 }
+    "serial": { "pin": "GP1", "speed": 2 }
   },
   "layouts": {
     "LAYOUT": {

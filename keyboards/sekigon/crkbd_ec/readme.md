@@ -6,14 +6,16 @@ Fork project of corne keyboard using NiZ EC switch
 -   Hardware Supported: Corne EC PCB, Xiao RP2040
 -   Hardware Availability: [BOOTH](https://nogikes.booth.pm/items/2371017)
 
-Make example for this keyboard (after setting up your build environment):
+Build example (after setting up your build environment):
 
-    make sekigon/crkbd_ec:default:uf2
+    qmk compile -kb sekigon/crkbd_ec -km default
 
-Flashing example for this keyboard:
+Flashing example:
 
-    make sekigon/crkbd_ec:default:flash
-    
-If you want to set eeconfig handedness, add `HANDEDNESS=left` or `HANDEDNESS=right` to build command.
+    qmk flash -kb sekigon/crkbd_ec -km default
+
+Handedness defaults to EE_HANDS with SPLIT_USB_DETECT; if you need to force a side you can pass `MASTER=left` or `MASTER=right` to the build/flash command.
+
+Electrostatic threshold is configurable via VIA raw command `0xec` (send `0xffff` for both values to reset).
 
 See the [build environment setup](https://docs.qmk.fm/#/getting_started_build_tools) and the [make instructions](https://docs.qmk.fm/#/getting_started_make_guide) for more information. Brand new to QMK? Start with our [Complete Newbs Guide](https://docs.qmk.fm/#/newbs).

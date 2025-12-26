@@ -21,10 +21,38 @@ enum {
 #    define CRKBD_EC_DEBUG_DEFAULT 0
 #endif
 
-static uint32_t debug_heartbeat_timer = 0;
-static bool     console_ready_logged  = false;
+static uint32_t debug_heartbeat_timer __attribute__((unused)) = 0;
+static bool     console_ready_logged __attribute__((unused))  = false;
 
 static void update_ecs_threshold(uint16_t low, uint16_t high);
+
+static void apply_ec_thresholds(uint16_t low_th, uint16_t high_th) {
+    ecsm_config_t config;
+    ecsm_get_config(&config);
+
+    if (low_th == 0xffff && high_th == 0xffff) {
+        // Reset threshold to defaults.
+        config.low_threshold  = LOW_THRESHOLD;
+        config.high_threshold = HIGH_THRESHOLD;
+    } else {
+        const uint16_t adc_max = 4095;
+        if (low_th > adc_max) {
+            low_th = adc_max;
+        }
+        if (high_th > adc_max) {
+            high_th = adc_max;
+        }
+
+        // Keep previous thresholds if ordering is invalid to avoid a dead matrix.
+        if (high_th > low_th) {
+            config.low_threshold  = low_th;
+            config.high_threshold = high_th;
+        }
+    }
+
+    ecsm_init(&config);
+    update_ecs_threshold(config.low_threshold, config.high_threshold);
+}
 
 void keyboard_post_init_kb() {
 #if CRKBD_EC_DEBUG_DEFAULT
@@ -33,7 +61,7 @@ void keyboard_post_init_kb() {
 #endif
 
     // Log master/hand detection after split_pre_init has run.
-        dprintf("post_init master=%d left=%d\n", is_keyboard_master(),
+    dprintf("post_init master=%d left=%d\n", is_keyboard_master(),
             is_keyboard_left());
 
     keyboard_post_init_user();
@@ -106,6 +134,16 @@ extern rgb_config_t rgb_matrix_config;
 #    define LIGHTING_UPDATE_EECONFIG()
 #endif
 
+static void save_lighting_for_layer(uint8_t layer) {
+#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
+    eeprom_update_dword((uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * layer),
+                        LIGHTING_CONFIG.raw);
+    LIGHTING_UPDATE_EECONFIG();
+#else
+    (void)layer;
+#endif
+}
+
 static void via_custom_lighting_get_value(uint8_t *data) {
     uint8_t *value_id   = &(data[0]);
     uint8_t *value_data = &(data[1]);
@@ -160,6 +198,22 @@ static void via_custom_lighting_set_value(uint8_t *data) {
     }
 }
 
+static bool process_lighting_command(uint8_t command_id, uint8_t *payload) {
+    switch (command_id) {
+        case id_custom_set_value:
+            via_custom_lighting_set_value(payload);
+            return true;
+        case id_custom_get_value:
+            via_custom_lighting_get_value(payload);
+            return true;
+        case id_custom_save:
+            save_lighting_for_layer(get_highest_layer(layer_state));
+            return true;
+        default:
+            return false;
+    }
+}
+
 static void update_ecs_threshold(uint16_t low, uint16_t high) {
     eeprom_update_word((uint16_t *)EEPROM_ECS_THRESHOLD_ADDR, low);
     eeprom_update_word((uint16_t *)(EEPROM_ECS_THRESHOLD_ADDR + 2), high);
@@ -172,9 +226,7 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
     uint8_t *command_id = &(data[0]);
     uint8_t *value_data = &(data[1]);
-#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
-    uint8_t  layer = get_highest_layer(layer_state);
-#endif
+    uint8_t  layer      = get_highest_layer(layer_state);
     switch (*command_id) {
         case id_get_keyboard_value:
             if (data[1] == 0xec) {
@@ -191,34 +243,7 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             if (data[1] == 0xec) {
                 uint16_t low_th  = (((uint16_t)data[2]) << 8) | data[3];
                 uint16_t high_th = (((uint16_t)data[4]) << 8) | data[5];
-
-                ecsm_config_t config;
-                if (low_th == 0xffff && high_th == 0xffff) {
-                    // Reset threshold
-                    config.low_threshold  = LOW_THRESHOLD;
-                    config.high_threshold = HIGH_THRESHOLD;
-                } else {
-                    // Enforce sane ordering and range.
-                    const uint16_t adc_max = 4095;
-                    if (high_th <= low_th) {
-                        // Keep previous thresholds to avoid dead keyboard.
-                        ecsm_get_config(&config);
-                        low_th  = config.low_threshold;
-                        high_th = config.high_threshold;
-                    }
-                    if (low_th > adc_max) {
-                        low_th = adc_max;
-                    }
-                    if (high_th > adc_max) {
-                        high_th = adc_max;
-                    }
-                    // Update threshold
-                    config.low_threshold  = low_th;
-                    config.high_threshold = high_th;
-                }
-                ecsm_init(&config);
-                update_ecs_threshold(config.low_threshold,
-                                     config.high_threshold);
+                apply_ec_thresholds(low_th, high_th);
             }
             break;
 
@@ -231,13 +256,7 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
             break;
         case id_lighting_save:
-#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
-            // Save rgblight config per layer
-            eeprom_update_dword(
-                (uint32_t *)(VIA_RGBLIGHT_USER_ADDR + 4 * layer),
-                LIGHTING_CONFIG.raw);
-            LIGHTING_UPDATE_EECONFIG();
-#endif
+            save_lighting_for_layer(layer);
             break;
         default:
             break;
@@ -246,61 +265,25 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 
 static bool handle_custom_lighting_command(uint8_t command_id, uint8_t *data,
                                            uint8_t length) {
-    if (length < 3) {
+    if (length < 2) {
         return false;
     }
 
     uint8_t channel    = data[1];
-    uint8_t *value_ptr = &data[2];
+    uint8_t *value_ptr = &data[1];
 
     // New VIA custom-value format: [cmd, channel, value_id, value...]
-    if (channel == id_custom_channel || channel == id_qmk_rgblight_channel ||
-        channel == id_qmk_rgb_matrix_channel) {
-        switch (command_id) {
-            case id_custom_set_value:
-                via_custom_lighting_set_value(value_ptr);
-                return true;
-            case id_custom_get_value:
-                via_custom_lighting_get_value(value_ptr);
-                return true;
-            case id_custom_save:
-#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
-                eeprom_update_dword(
-                    (uint32_t *)(VIA_RGBLIGHT_USER_ADDR +
-                                 4 * get_highest_layer(layer_state)),
-                    LIGHTING_CONFIG.raw);
-                LIGHTING_UPDATE_EECONFIG();
-#endif
-                return true;
-            default:
-                break;
-        }
+    if (length >= 3 &&
+        (channel == id_custom_channel || channel == id_qmk_rgblight_channel ||
+         channel == id_qmk_rgb_matrix_channel)) {
+        value_ptr = &data[2];
+        return process_lighting_command(command_id, value_ptr);
     }
 
     // Legacy VIA 0x0009-style layout: [cmd, value_id, value...]
-    if (length >= 2 &&
-        channel >= id_qmk_rgblight_brightness &&
+    if (channel >= id_qmk_rgblight_brightness &&
         channel <= id_qmk_rgblight_color) {
-        value_ptr = &data[1];
-        switch (command_id) {
-            case id_custom_set_value:
-                via_custom_lighting_set_value(value_ptr);
-                return true;
-            case id_custom_get_value:
-                via_custom_lighting_get_value(value_ptr);
-                return true;
-            case id_custom_save:
-#if defined(RGBLIGHT_ENABLE) || defined(RGB_MATRIX_ENABLE)
-                eeprom_update_dword(
-                    (uint32_t *)(VIA_RGBLIGHT_USER_ADDR +
-                                 4 * get_highest_layer(layer_state)),
-                    LIGHTING_CONFIG.raw);
-                LIGHTING_UPDATE_EECONFIG();
-#endif
-                return true;
-            default:
-                break;
-        }
+        return process_lighting_command(command_id, value_ptr);
     }
 
     return false;
