@@ -19,6 +19,7 @@
 #include "protocol/pico/pico_cdc.h"
 #include "eeprom.h"
 #include "eeconfig.h"
+#include "debug.h"
 
 // Compatibility aliases for renamed keycodes
 #ifndef RESET
@@ -200,6 +201,10 @@ void pico_cdc_on_disconnect(void) { dprint_matrix = false; }
 bool pico_cdc_receive_kb(uint8_t const *buf, uint32_t cnt) {
     if (cnt > 0 && buf[0] == 'e') {
         dprint_matrix ^= true;
+        if (dprint_matrix) {
+            debug_enable = true;
+            debug_matrix = true;
+        }
         return false;
     }
     return true;

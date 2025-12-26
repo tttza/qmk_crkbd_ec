@@ -97,7 +97,24 @@ static bool pico_console_flush(void) {
     return true;
 }
 
+// Also mirror console output to the CDC interface so host-side scripts that
+// talk to pico_cdc (used for ADC dumping) can see the same data.
+static inline void pico_console_write_cdc(uint8_t c) {
+    if (!tud_cdc_connected()) {
+        return;
+    }
+
+    // Only push when the buffer has space; drop silently otherwise to avoid
+    // stalling HID traffic.
+    if (tud_cdc_write_available() > 0) {
+        tud_cdc_write_char(c);
+        tud_cdc_write_flush();
+    }
+}
+
 int8_t sendchar(uint8_t c) {
+    pico_console_write_cdc(c);
+
     if (console_count >= sizeof(console_buffer)) {
         if (!pico_console_flush()) {
             return -1;
