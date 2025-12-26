@@ -71,9 +71,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define SOFT_SERIAL_PIN GP1
 // Run split PIO serial on PIO1 to avoid WS2812 contention on PIO0.
 #define SOFT_SERIAL_PIO_INDEX 1
-#ifndef SPLIT_USB_DETECT
-#    define SPLIT_USB_DETECT
-#endif
+// Use VBUS edge to decide master immediately (no SPLIT_USB_DETECT wait loop).
 
 #define EE_HANDS
 
@@ -179,10 +177,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // #define WS2812_TRST_US 200
 // #define WS2812_BYTE_ORDER WS2812_BYTE_ORDER_RGB
 
-#define SPLIT_USB_TIMEOUT 3000
-#define SPLIT_USB_TIMEOUT_POLL 50
+#define SPLIT_USB_TIMEOUT 1200
+#define SPLIT_USB_TIMEOUT_POLL 15
 #define SPLIT_WATCHDOG_ENABLE
-#define SPLIT_WATCHDOG_TIMEOUT 5000
+// Keep watchdog slightly above USB detect window so solo/slave halves reboot faster.
+#define SPLIT_WATCHDOG_TIMEOUT 2200
 
 /* Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is
  * not needed */
