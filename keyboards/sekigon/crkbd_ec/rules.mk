@@ -2,7 +2,7 @@ BOOTLOADER = rp2040
 
 # --- Matrix / platform glue ---
 CUSTOM_MATRIX = lite
-SRC += analog.c ec_switch_matrix.c matrix.c
+SRC += analog.c ec_switch_matrix.c matrix.c xiao_status_led.c
 # Ensure HID console print implementation is linked on RP2040.
 SRC += tmk_core/common/pico/print.c
 

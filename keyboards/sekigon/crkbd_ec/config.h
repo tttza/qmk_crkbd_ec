@@ -81,6 +81,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define WS2812_DI_PIN GP7
 #define RGBLED_NUM 42
 
+// Xiao RP2040 onboard indicators (separate from the WS2812 underglow)
+#define XIAO_STATUS_PIXEL_DI_PIN GP12
+#define XIAO_STATUS_PIXEL_POWER_PIN GP11
+#define XIAO_STATUS_LED_R_PIN GP17
+#define XIAO_STATUS_LED_G_PIN GP16
+#define XIAO_STATUS_LED_B_PIN GP25
+// Xiao user LEDs are active-low on Xiao RP2040 boards.
+#define XIAO_STATUS_LED_ACTIVE_HIGH 0
+
 #ifdef RGBLIGHT_ENABLE
 #    define RGBLED_SPLIT {21, 21}
 #    define RGBLIGHT_SPLIT

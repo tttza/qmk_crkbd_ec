@@ -6,9 +6,15 @@
 #include "ec_switch_matrix.h"
 #include "eeprom.h"
 #include "eeconfig.h"
+#include "matrix.h"
 #include "raw_hid.h"
 #include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
+#include "transport.h"
 #include "tusb.h"
+#include "xiao_status_led.h"
+#include "keymaps/tttza/custom_keymap.h"
+#include "split_util.h"
+#include <string.h>
 
 // Align custom lighting command IDs with VIA custom commands
 enum {
@@ -23,6 +29,12 @@ enum {
 
 static uint32_t debug_heartbeat_timer __attribute__((unused)) = 0;
 static bool     console_ready_logged __attribute__((unused))  = false;
+static uint32_t last_matrix_change_ms                        = 0;
+static bool     stuck_key_alert                              = false;
+
+extern user_config_t user_config;
+
+extern matrix_row_t raw_matrix[MATRIX_ROWS];
 
 static void update_ecs_threshold(uint16_t low, uint16_t high);
 
@@ -60,6 +72,11 @@ void keyboard_post_init_kb() {
     debug_matrix = true;
 #endif
 
+    xiao_status_led_init();
+    xiao_status_led_set_layer(layer_state);
+    xiao_status_led_set_host_leds(host_keyboard_led_state());
+    xiao_status_led_set_alert(0);
+
     // Log master/hand detection after split_pre_init has run.
     dprintf("post_init master=%d left=%d\n", is_keyboard_master(),
             is_keyboard_left());
@@ -82,6 +99,68 @@ void matrix_scan_kb(void) {
     }
 #endif
     matrix_scan_user();
+
+    // Stuck-key detection: if the raw matrix is unchanged and non-empty for longer than the threshold, raise an alert.
+    static matrix_row_t last_raw[MATRIX_ROWS] = {0};
+    const uint32_t      now_ms                = timer_read32();
+    const bool          raw_changed           = memcmp(last_raw, raw_matrix, sizeof(last_raw)) != 0;
+    const bool          any_pressed = ({
+        bool pressed = false;
+        for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+            if (raw_matrix[r]) {
+                pressed = true;
+                break;
+            }
+        }
+        pressed;
+    });
+
+    if (raw_changed) {
+        memcpy(last_raw, raw_matrix, sizeof(last_raw));
+        last_matrix_change_ms = now_ms;
+        if (stuck_key_alert) {
+            stuck_key_alert = false;
+            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+        }
+    } else if (any_pressed) {
+        const uint32_t STUCK_MS = 5000;  // 5 seconds before flagging
+        if (!stuck_key_alert && timer_elapsed32(last_matrix_change_ms) > STUCK_MS) {
+            stuck_key_alert = true;
+            xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);  // blink yellow on NeoPixel
+        }
+    } else {
+        // No keys active and no change: keep timer fresh to avoid stale alert.
+        last_matrix_change_ms = now_ms;
+        if (stuck_key_alert) {
+            stuck_key_alert = false;
+            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+        }
+    }
+
+    // User LED status priority (discrete LEDs): USB error (red) > split error (green) > US mode (blue).
+    uint8_t user_status_mask = 0;
+    bool    usb_ready        = tud_ready();
+    bool    split_ok         = is_transport_connected();
+    bool    us_mode          = !user_config.jis;
+
+    if (!usb_ready) {
+        user_status_mask = 0x01;  // red
+    } else if (!split_ok) {
+        user_status_mask = 0x02;  // green
+    } else if (us_mode) {
+        user_status_mask = 0x04;  // blue
+    }
+
+    xiao_status_led_set_alert(user_status_mask);
+
+    // NeoPixel: only used for stuck-key blink; otherwise follow layer color.
+    if (stuck_key_alert) {
+        xiao_status_led_set_status((xiao_rgb_t){120, 120, 0}, true);
+    } else {
+        xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+    }
+
+    xiao_status_led_task();
 }
 
 void           eeconfig_init_kb(void) {
@@ -314,6 +393,17 @@ bool via_command_kb(uint8_t *data, uint8_t length) {
     return false;
 }
 
+layer_state_t layer_state_set_kb(layer_state_t state) {
+    layer_state_t updated = layer_state_set_user(state);
+    xiao_status_led_set_layer(updated);
+    return updated;
+}
+
+bool led_update_kb(led_t led_state) {
+    xiao_status_led_set_host_leds(led_state);
+    return led_update_user(led_state);
+}
+
 #ifdef RGB_MATRIX_ENABLE
 led_config_t g_led_config = {
     {
@@ -336,13 +426,20 @@ led_config_t g_led_config = {
         4, 4, 4, 4, 4, 1, 1, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 1,
     }};
 
+#endif
+
 void suspend_power_down_kb(void) {
+#ifdef RGB_MATRIX_ENABLE
     rgb_matrix_set_suspend_state(true);
+#endif
+    xiao_status_led_suspend();
     suspend_power_down_user();
 }
 
 void suspend_wakeup_init_kb(void) {
+#ifdef RGB_MATRIX_ENABLE
     rgb_matrix_set_suspend_state(false);
+#endif
+    xiao_status_led_wakeup();
     suspend_wakeup_init_user();
 }
-#endif
