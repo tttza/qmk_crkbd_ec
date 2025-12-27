@@ -35,16 +35,21 @@ const uint16_t us2jis[][2] = {
 bool twpair_on_jis(uint16_t keycode, keyrecord_t *record) {
     if (!record->event.pressed) return true;
 
-    // Track shift state to translate shifted symbols correctly.
-    bool     lshifted = keyboard_report->mods & MOD_BIT(KC_LSFT);
-    bool     rshifted = keyboard_report->mods & MOD_BIT(KC_RSFT);
-    bool     shifted  = lshifted | rshifted;
-    uint16_t skeycode = shifted ? (QK_LSFT | keycode) : keycode;
+    // Track shift state across normal/oneshot/weak mods so Caps Word and OSM work.
+    uint8_t  saved_mods     = get_mods();
+    uint8_t  saved_oneshot  = get_oneshot_mods();
+    uint8_t  saved_weak     = get_weak_mods();
+    uint8_t  combined_mods  = saved_mods | saved_oneshot | saved_weak;
+    bool     shifted        = combined_mods & MOD_MASK_SHIFT;
+    uint16_t skeycode       = shifted ? (QK_LSFT | keycode) : keycode;
+
+    // Avoid double-shift by temporarily clearing shift-like mods.
+    del_mods(MOD_MASK_SHIFT);
+    del_oneshot_mods(MOD_MASK_SHIFT);
+    del_weak_mods(MOD_MASK_SHIFT);
 
     for (int i = 0; i < sizeof(us2jis) / sizeof(us2jis[0]); i++) {
         if (us2jis[i][0] == skeycode) {
-            unregister_code(KC_LSFT);
-            unregister_code(KC_RSFT);
             if ((us2jis[i][1] & QK_LSFT) == QK_LSFT ||
                 (us2jis[i][1] & QK_RSFT) == QK_RSFT) {
                 register_code(KC_LSFT);
@@ -53,11 +58,18 @@ bool twpair_on_jis(uint16_t keycode, keyrecord_t *record) {
             } else {
                 tap_code(us2jis[i][1]);
             }
-            if (lshifted) register_code(KC_LSFT);
-            if (rshifted) register_code(KC_RSFT);
+
+            // Restore original modifier state (including oneshot/weak).
+            set_mods(saved_mods);
+            add_weak_mods(saved_weak);
+            add_oneshot_mods(saved_oneshot);
             return false;
         }
     }
+
+    set_mods(saved_mods);
+    add_weak_mods(saved_weak);
+    add_oneshot_mods(saved_oneshot);
 
     return true;
 }
