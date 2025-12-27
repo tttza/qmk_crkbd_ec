@@ -292,7 +292,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (record->event.pressed) {
                 bool is_left = eeconfig_read_handedness();
                 eeconfig_update_handedness(!is_left);
-                reset_keyboard();
+                soft_reset_keyboard();
             }
             return false;
         default:
