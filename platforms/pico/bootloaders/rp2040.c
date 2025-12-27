@@ -6,10 +6,9 @@
 #include "pico/bootrom.h"
 #include "hardware/watchdog.h"
 
-// Avoid forcing BOOTSEL unless explicitly requested; reboot like a normal reset
-// so we can tell if firmware is accidentally calling the bootloader path.
+// Explicitly drop into BOOTSEL when requested (QK_BOOT, bootmagic, etc.).
 void bootloader_jump(void) {
-    watchdog_reboot(0, 0, 0);
+    reset_usb_boot(0, 0);
     while (1) {
         tight_loop_contents();
     }
