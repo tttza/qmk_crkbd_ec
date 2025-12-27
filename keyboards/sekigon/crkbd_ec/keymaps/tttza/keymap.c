@@ -83,16 +83,14 @@ enum layer_number {
 
 // Use USER keycodes so Remap/VIA can display them
 enum custom_keycodes {
-    CK_USER_LOWER  = QK_USER_0,
-    CK_USER_RAISE  = QK_USER_1,
-    CK_EnJIS       = QK_USER_2,
-    CK_EnUS        = QK_USER_3,
-    WSEL           = QK_USER_4,
-    CK_HAND_SWAP   = QK_USER_5,
+    CK_EnJIS     = QK_USER_2,
+    CK_EnUS      = QK_USER_3,
+    WSEL         = QK_USER_4,
+    CK_HAND_SWAP = QK_USER_5,
 };
 
-#define LOWER CK_USER_LOWER
-#define RAISE CK_USER_RAISE
+#define LOWER LT(_LOWER, KC_MHEN)
+#define RAISE LT(_RAISE, KC_HENK)
 
 // マクロ再生時に物理キー入力と同じくUS/JISを切り替えたまま記号が出るようにする
 static uint16_t lang_keycode(uint16_t keycode) {
@@ -253,59 +251,6 @@ void set_keyboard_lang_to_jis(bool set_jis) {
 // 	return MACRO_NONE;
 // };
 
-// ref:
-// https://gist.github.com/okapies/5d13a174cbb13ce34dbd9faede9d0b71#file-keymap-c-L99-L164
-static bool     lower_pressed      = false;
-static bool     lower_cmb_pressed  = false;
-static uint16_t lower_pressed_time = 0;
-static bool     raise_pressed      = false;
-static bool     raise_cmb_pressed  = false;
-static uint16_t raise_pressed_time = 0;
-bool            process_lower(uint16_t keycode, keyrecord_t *record) {
-    if (record->event.pressed) {
-        lower_pressed      = true;
-        lower_cmb_pressed  = false;
-        lower_pressed_time = record->event.time;
-
-        layer_on(_LOWER);
-    } else {
-        layer_off(_LOWER);
-
-        if (!lower_cmb_pressed && lower_pressed &&
-            (TIMER_DIFF_16(record->event.time, lower_pressed_time) <
-             TAPPING_TERM)) {
-            register_code(JP_MHEN);
-            unregister_code(JP_MHEN);
-            //   register_code(KC_LANG2); // for macOS
-            //   unregister_code(KC_LANG2);
-        }
-        lower_pressed = false;
-    }
-    return false;
-}
-bool process_raise(uint16_t keycode, keyrecord_t *record) {
-    if (record->event.pressed) {
-        raise_pressed      = true;
-        raise_cmb_pressed  = false;
-        raise_pressed_time = record->event.time;
-
-        layer_on(_RAISE);
-    } else {
-        layer_off(_RAISE);
-
-        if (!raise_cmb_pressed && raise_pressed &&
-            (TIMER_DIFF_16(record->event.time, raise_pressed_time) <
-             TAPPING_TERM)) {
-            register_code(JP_HENK);
-            unregister_code(JP_HENK);
-            //   register_code(KC_LANG1); // for macOS
-            //   unregister_code(KC_LANG1);
-        }
-        raise_pressed = false;
-    }
-    return false;
-}
-
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!process_select_word(keycode, record, WSEL)) {
         return false;
@@ -324,18 +269,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 reset_keyboard();
             }
             return false;
-        case CK_USER_LOWER:
-            return process_lower(keycode, record);
-        case CK_USER_RAISE:
-            return process_raise(keycode, record);
         default:
-            // NOTE: is redundant?
-            if (lower_pressed) {
-                lower_cmb_pressed = true;
-            }
-            if (raise_pressed) {
-                raise_cmb_pressed = true;
-            }
             if (user_config.jis) {
                 return twpair_on_jis(keycode, record);
             } else {
