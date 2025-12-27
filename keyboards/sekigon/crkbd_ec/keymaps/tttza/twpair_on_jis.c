@@ -14,16 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
-
-  OSで日本語キーボード(logical bit pairing)と設定/認識されているキーボードで、
-  USキーキャップの文字、記号(typewriter pairing)を正しく出力する。
-
-  例: Shift + 2 で @ を入力する
-
-  変換された文字はキーリピートが無効です。
-
-*/
+/* Translate US keycap symbols to the correct JIS outputs when the OS is set to
+ * a JIS keyboard, keeping symbols aligned (e.g., Shift + 2 -> @). Translated
+ * outputs do not repeat. */
 
 #include QMK_KEYBOARD_H
 #include "keymap_jp.h"
@@ -42,17 +35,11 @@ const uint16_t us2jis[][2] = {
 bool twpair_on_jis(uint16_t keycode, keyrecord_t *record) {
     if (!record->event.pressed) return true;
 
-    uint16_t skeycode;  // シフトビットを反映したキーコード
-    bool     lshifted =
-        keyboard_report->mods & MOD_BIT(KC_LSFT);  // シフトキーの状態
-    bool rshifted = keyboard_report->mods & MOD_BIT(KC_RSFT);
-    bool shifted  = lshifted | rshifted;
-
-    if (shifted) {
-        skeycode = QK_LSFT | keycode;
-    } else {
-        skeycode = keycode;
-    }
+    // Track shift state to translate shifted symbols correctly.
+    bool     lshifted = keyboard_report->mods & MOD_BIT(KC_LSFT);
+    bool     rshifted = keyboard_report->mods & MOD_BIT(KC_RSFT);
+    bool     shifted  = lshifted | rshifted;
+    uint16_t skeycode = shifted ? (QK_LSFT | keycode) : keycode;
 
     for (int i = 0; i < sizeof(us2jis) / sizeof(us2jis[0]); i++) {
         if (us2jis[i][0] == skeycode) {

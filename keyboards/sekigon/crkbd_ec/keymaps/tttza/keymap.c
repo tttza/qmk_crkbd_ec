@@ -94,7 +94,7 @@ enum custom_keycodes {
 #define LOWER LT(_LOWER, KC_MHEN)
 #define RAISE LT(_RAISE, KC_HENK)
 
-// マクロ再生時に物理キー入力と同じくUS/JISを切り替えたまま記号が出るようにする
+// Translate macro playback the same way as physical key input (US/JIS toggle aware)
 static uint16_t lang_keycode(uint16_t keycode) {
     if (user_config.jis) {
         return us_to_jis_keycode(keycode);
@@ -104,7 +104,7 @@ static uint16_t lang_keycode(uint16_t keycode) {
 
 void tap_code16_lang(uint16_t keycode) { tap_code16(lang_keycode(keycode)); }
 
-// send_string経由のマクロもUS/JIS変換を通す
+// Ensure send_string macros also pass through US/JIS translation
 void send_string_apply_keymap(uint8_t *keycode, bool *is_shifted,
                               bool *is_altgred) {
     (void)is_altgred;
@@ -118,7 +118,7 @@ void send_string_apply_keymap(uint8_t *keycode, bool *is_shifted,
 
     uint16_t translated = us_to_jis_keycode(code);
 
-    // 抽出した変換結果からシフトを再構成
+    // Rebuild shift from the translated keycode
     *is_shifted = (translated & QK_LSFT) || (translated & QK_RSFT);
     *keycode    = translated & 0xFF;
 }
@@ -177,16 +177,6 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 
 layer_state_t layer_state_set_user(layer_state_t state) {
     state = update_tri_layer_state(state, _RAISE, _LOWER, _ADJUST);
-
-    //     if (state < DYNAMIC_KEYMAP_LAYER_COUNT) {
-    // #if defined(RGBLIGHT_ENABLE)
-    //         rgblight_update_dword(eeprom_read_dword((const uint32_t
-    //         *)(VIA_RGBLIGHT_USER_ADDR + 4 * state)));
-    // #elif defined(RGB_MATRIX_ENABLE)
-    //         rgb_matrix_config.raw = eeprom_read_dword((const uint32_t
-    //         *)(VIA_RGBLIGHT_USER_ADDR + 4 * state));
-    // #endif
-    //     }
 
     return state;
 }
@@ -264,15 +254,6 @@ bool caps_word_press_user(uint16_t keycode) {
             return false;
     }
 }
-
-// const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
-// { 	if (record->event.pressed) { 		switch(id) { 			case 0:
-// return MACRO(D(KC_LGUI), T(KC_L), U(KC_LGUI), END); 			case 1:
-// return MACRO(D(KC_LGUI), D(KC_LSFT), T(KC_S), U(KC_LSFT), U(KC_LGUI), END);
-// 		}
-// 	}
-// 	return MACRO_NONE;
-// };
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!process_caps_word(keycode, record)) {
