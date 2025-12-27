@@ -64,9 +64,11 @@ extern rgb_config_t rgb_matrix_config;
 #endif
 
 #include "keymap_extras/keymap_japanese.h"
+#include "caps_word.h"
 #include "select_word.h"
 #include "twpair_on_jis.h"
 #include "custom_keymap.h"
+#include "xiao_status_led.h"
 
 #ifdef CONSOLE_ENABLE
 #    include "print.h"
@@ -164,7 +166,7 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
 
   [_ADJUST] = LAYOUT(
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
-    QK_BOOT, CK_HAND_SWAP, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS, XXXXXXX, XXXXXXX, CK_HAND_SWAP, XXXXXXX,
+        QK_BOOT, CK_HAND_SWAP, CW_TOGG, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS, AS_TOGG, XXXXXXX, CK_HAND_SWAP, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
     RM_TOGG, RM_HUEU, RM_SATU, RM_VALU, XXXXXXX, XXXXXXX,                      XXXXXXX,CK_EnJIS, KC_MUTE, KC_VOLU, KC_VOLD, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
@@ -242,6 +244,30 @@ void set_keyboard_lang_to_jis(bool set_jis) {
     save_persistent();
 }
 
+// Indicate Caps Word with the GP12 status pixel only.
+void caps_word_set_user(bool active) {
+    xiao_status_led_set_status(active ? (xiao_rgb_t){0, 80, 100} : (xiao_rgb_t){0, 0, 0}, false);
+}
+
+// Keep caps word active for letters, digits, and common separators.
+bool caps_word_press_user(uint16_t keycode) {
+    switch (keycode) {
+        case KC_A ... KC_Z:
+            add_weak_mods(MOD_BIT(KC_LSFT));
+            return true;
+        case KC_1 ... KC_0:
+        case KC_BSPC:
+        case KC_DEL:
+            return true;
+        case KC_MINS:
+        case KC_UNDS:
+            add_weak_mods(MOD_BIT(KC_LSFT));
+            return true;
+        default:
+            return false;
+    }
+}
+
 // const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
 // { 	if (record->event.pressed) { 		switch(id) { 			case 0:
 // return MACRO(D(KC_LGUI), T(KC_L), U(KC_LGUI), END); 			case 1:
@@ -252,6 +278,9 @@ void set_keyboard_lang_to_jis(bool set_jis) {
 // };
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (!process_caps_word(keycode, record)) {
+        return false;
+    }
     if (!process_select_word(keycode, record, WSEL)) {
         return false;
     }

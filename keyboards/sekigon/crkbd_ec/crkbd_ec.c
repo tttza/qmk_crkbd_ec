@@ -166,9 +166,11 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
 
     xiao_status_led_set_alert(user_status_mask);
 
-    // NeoPixel: only used for stuck-key blink; otherwise follow layer color.
+    // NeoPixel status priority: stuck-key alert > Caps Word indicator > off.
     if (stuck_key_alert) {
         xiao_status_led_set_status(stuck_key_color, true);
+    } else if (is_caps_word_on()) {
+        xiao_status_led_set_status((xiao_rgb_t){0, 80, 100}, false);
     } else {
         xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
     }

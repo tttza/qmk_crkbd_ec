@@ -1,3 +1,5 @@
 
 #define TAPPING_TERM 200
 #define RETRO_TAPPING
+
+#define AUTO_SHIFT_TIMEOUT 170
