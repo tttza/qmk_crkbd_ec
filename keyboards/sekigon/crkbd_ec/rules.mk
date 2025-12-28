@@ -62,3 +62,6 @@ AUDIO_ENABLE      = no       # Audio output
 
 # Use EE_HANDS by default; compile-time handedness overrides are intentionally omitted.
 
+## --- Key ---
+DEBOUNCE_TYPE = sym_defer_pk
+
