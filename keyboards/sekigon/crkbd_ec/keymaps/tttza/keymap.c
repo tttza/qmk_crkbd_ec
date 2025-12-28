@@ -145,7 +145,7 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
         QK_BOOT, CK_HAND_SWAP,  AS_TOGG, XXXXXXX, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnUS,  CW_TOGG, XXXXXXX, CK_HAND_SWAP, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-        RM_TOGG,   RM_HUEU,   RM_SATU,   RM_VALU, XXXXXXX, XXXXXXX,                    XXXXXXX, CK_EnJIS, KC_MUTE,  KC_VOLU,  KC_VOLD, XXXXXXX,
+        RM_TOGG,   RM_HUEU,   RM_SATU,   RM_VALU, XXXXXXX, XXXXXXX,                    QK_REBOOT, CK_EnJIS, KC_MUTE,  KC_VOLU,  KC_VOLD, XXXXXXX,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
         RM_NEXT,   RM_HUED,   RM_SATD,   RM_VALD, QK_MACRO_1, QK_MACRO_0,              XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, SE_UNLK,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|

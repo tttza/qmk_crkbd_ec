@@ -171,13 +171,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    define ENABLE_RGB_MATRIX_RIVERFLOW
 #endif
 
-// --- Split watchdog / debounce ---
+// --- Split watchdog ---
 #define SPLIT_USB_TIMEOUT 1200
 #define SPLIT_USB_TIMEOUT_POLL 15
 #define SPLIT_WATCHDOG_ENABLE
 // Keep watchdog slightly above USB detect window so solo/slave halves reboot faster.
 #define SPLIT_WATCHDOG_TIMEOUT 2200
 
+// --- USB conection ---
+
+#define USB_WAIT_FOR_ENUMERATION
+#define USB_SUSPEND_WAKEUP_DELAY 200
+
+// --- else ---
 // Debounce reduces chatter (unintended double-presses) - set 0 if debouncing is not needed.
 #define DEBOUNCE 5
 
