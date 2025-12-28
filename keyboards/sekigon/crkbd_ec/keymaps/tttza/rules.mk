@@ -6,5 +6,6 @@ LEADER_ENABLE = yes
 SRC += twpair_on_jis.c
 SRC += select_word.c
 SRC += leader_vim.c
+SRC += xiao_status_service.c
 
 # EXTRAFLAGS += -flto

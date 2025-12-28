@@ -13,6 +13,7 @@
 #include "tusb.h"
 #include "xiao_status_led.h"
 #include "keymaps/tttza/custom_keymap.h"
+#include "keymaps/tttza/xiao_status_service.h"
 #include "split_util.h"
 #include <string.h>
 
@@ -131,7 +132,7 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
         last_matrix_change_ms = now_ms;
         if (stuck_key_alert) {
             stuck_key_alert = false;
-            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+            xiao_status_service_clear(XIAO_STATUS_SLOT_STUCK_ALERT);
         }
     } else if (any_pressed) {
         const uint32_t STUCK_MS = 5000;  // 5 seconds before flagging
@@ -139,14 +140,14 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
             stuck_key_alert = true;
             const int8_t row_hint = bottommost_active_row(local_state);
             stuck_key_color       = stuck_row_color(row_hint);
-            xiao_status_led_set_status(stuck_key_color, true);  // blink per-row color on NeoPixel
+            xiao_status_service_set(XIAO_STATUS_SLOT_STUCK_ALERT, stuck_key_color, true);
         }
     } else {
         // No keys active and no change: keep timer fresh to avoid stale alert.
         last_matrix_change_ms = now_ms;
         if (stuck_key_alert) {
             stuck_key_alert = false;
-            xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
+            xiao_status_service_clear(XIAO_STATUS_SLOT_STUCK_ALERT);
         }
     }
 
@@ -165,15 +166,6 @@ static void crkbd_ec_matrix_scan(bool is_slave) {
     }
 
     xiao_status_led_set_alert(user_status_mask);
-
-    // NeoPixel status priority: stuck-key alert > Caps Word indicator > off.
-    if (stuck_key_alert) {
-        xiao_status_led_set_status(stuck_key_color, true);
-    } else if (is_caps_word_on()) {
-        xiao_status_led_set_status((xiao_rgb_t){0, 80, 100}, false);
-    } else {
-        xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
-    }
 
     xiao_status_led_task();
 }
@@ -216,6 +208,7 @@ void keyboard_post_init_kb() {
     xiao_status_led_set_layer(layer_state);
     xiao_status_led_set_host_leds(host_keyboard_led_state());
     xiao_status_led_set_alert(0);
+    xiao_status_service_init();
 
     // Log master/hand detection after split_pre_init has run.
     dprintf("post_init master=%d left=%d\n", is_keyboard_master(),
@@ -506,5 +499,6 @@ void suspend_wakeup_init_kb(void) {
     rgb_matrix_set_suspend_state(false);
 #endif
     xiao_status_led_wakeup();
+    xiao_status_service_refresh();
     suspend_wakeup_init_user();
 }

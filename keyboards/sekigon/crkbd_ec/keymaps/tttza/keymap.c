@@ -68,7 +68,7 @@ extern rgb_config_t rgb_matrix_config;
 #include "select_word.h"
 #include "twpair_on_jis.h"
 #include "custom_keymap.h"
-#include "xiao_status_led.h"
+#include "xiao_status_service.h"
 #ifdef LEADER_ENABLE
 #    include "process_keycode/process_leader.h"
 #endif
@@ -242,7 +242,11 @@ void set_keyboard_lang_to_jis(bool set_jis) {
 
 // Indicate Caps Word with the GP12 status pixel only.
 void caps_word_set_user(bool active) {
-    xiao_status_led_set_status(active ? (xiao_rgb_t){0, 80, 100} : (xiao_rgb_t){0, 0, 0}, false);
+    if (active) {
+        xiao_status_service_set(XIAO_STATUS_SLOT_CAPS_WORD, (xiao_rgb_t){0, 80, 100}, false);
+    } else {
+        xiao_status_service_clear(XIAO_STATUS_SLOT_CAPS_WORD);
+    }
 }
 
 // Keep caps word active for letters, digits, and common separators.

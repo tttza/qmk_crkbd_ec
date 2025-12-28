@@ -1,8 +1,7 @@
 #include QMK_KEYBOARD_H
 #include "leader.h"
 #include "process_keycode/process_leader.h"
-#include "caps_word.h"
-#include "xiao_status_led.h"
+#include "xiao_status_service.h"
 
 // Provided by keymap.c
 void tap_code16_lang(uint16_t keycode);
@@ -96,15 +95,11 @@ static void vim_go_top(void) { tap_code16(LCTL(KC_HOME)); }
 static void vim_go_bottom(void) { tap_code16(LCTL(KC_END)); }
 
 static void leader_led_active(void) {
-    xiao_status_led_set_status((xiao_rgb_t){80, 50, 0}, false);
+    xiao_status_service_set(XIAO_STATUS_SLOT_LEADER, (xiao_rgb_t){80, 50, 0}, false);
 }
 
 static void leader_led_restore(void) {
-    if (is_caps_word_on()) {
-        xiao_status_led_set_status((xiao_rgb_t){0, 80, 100}, false);
-    } else {
-        xiao_status_led_set_status((xiao_rgb_t){0, 0, 0}, false);
-    }
+    xiao_status_service_clear(XIAO_STATUS_SLOT_LEADER);
 }
 
 void leader_start_user(void) { leader_led_active(); }
