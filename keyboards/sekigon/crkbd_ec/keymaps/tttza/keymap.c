@@ -15,11 +15,8 @@
  */
 #include QMK_KEYBOARD_H
 
-#include "ec_switch_matrix.h"
-#include "protocol/pico/pico_cdc.h"
-#include "eeprom.h"
+#include "custom_keymap.h"
 #include "eeconfig.h"
-#include "debug.h"
 
 // Compatibility aliases for renamed keycodes
 #ifndef RESET
@@ -63,12 +60,10 @@
 extern rgb_config_t rgb_matrix_config;
 #endif
 
-#include "keymap_extras/keymap_japanese.h"
 #include "caps_word.h"
 #include "select_word.h"
 #include "twpair_on_jis.h"
-#include "custom_keymap.h"
-#include "xiao_status_service.h"
+#include "keymap_extras/keymap_japanese.h"
 #ifdef LEADER_ENABLE
 #    include "process_keycode/process_leader.h"
 #endif
@@ -76,7 +71,6 @@ extern rgb_config_t rgb_matrix_config;
 #ifdef CONSOLE_ENABLE
 #    include "print.h"
 #endif
-user_config_t user_config = {};
 
 enum layer_number {
     _QWERTY = 0,
@@ -95,35 +89,6 @@ enum custom_keycodes {
 
 #define LOWER LT(_LOWER, KC_MHEN)
 #define RAISE LT(_RAISE, KC_HENK)
-
-// Translate macro playback the same way as physical key input (US/JIS toggle aware)
-static uint16_t lang_keycode(uint16_t keycode) {
-    if (user_config.jis) {
-        return us_to_jis_keycode(keycode);
-    }
-    return keycode;
-}
-
-void tap_code16_lang(uint16_t keycode) { tap_code16(lang_keycode(keycode)); }
-
-// Ensure send_string macros also pass through US/JIS translation
-void send_string_apply_keymap(uint8_t *keycode, bool *is_shifted,
-                              bool *is_altgred) {
-    (void)is_altgred;
-
-    if (!user_config.jis) return;
-
-    uint16_t code = *keycode;
-    if (*is_shifted) {
-        code |= QK_LSFT;
-    }
-
-    uint16_t translated = us_to_jis_keycode(code);
-
-    // Rebuild shift from the translated keycode
-    *is_shifted = (translated & QK_LSFT) || (translated & QK_RSFT);
-    *keycode    = translated & 0xFF;
-}
 
 // clang-format off
 const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
@@ -181,91 +146,6 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     state = update_tri_layer_state(state, _RAISE, _LOWER, _ADJUST);
 
     return state;
-}
-
-static bool dprint_matrix = false;
-
-void pico_cdc_on_disconnect(void) {
-    dprint_matrix = false;
-    debug_matrix  = false;
-    debug_enable  = false;
-}
-
-bool pico_cdc_receive_kb(uint8_t const *buf, uint32_t cnt) {
-    if (cnt > 0 && buf[0] == 'e') {
-        dprint_matrix ^= true;
-        if (dprint_matrix) {
-            debug_enable = true;
-            debug_matrix = true;
-        } else {
-            debug_matrix = false;
-            debug_enable = false;
-        }
-        return false;
-    }
-    return true;
-}
-
-void matrix_scan_user(void) {
-    static int cnt = 0;
-    if (dprint_matrix && cnt++ == 30) {
-        cnt = 0;
-        ecsm_dprint_matrix();
-    }
-}
-
-void load_persistent(void) { user_config.raw = eeconfig_read_user(); }
-
-void save_persistent(void) { eeconfig_update_user(user_config.raw); }
-
-void eeconfig_init_user(void) {
-    set_keyboard_lang_to_jis(true);
-    save_persistent();
-}
-
-void keyboard_post_init_user(void) {
-    // layer_state_set_user(layer_state);
-    load_persistent();
-}
-
-void set_keyboard_lang_to_jis(bool set_jis) {
-    if (user_config.jis == set_jis) {
-        return;
-    }
-    if (set_jis) {
-        user_config.jis = 1;
-    } else {
-        user_config.jis = 0;
-    }
-    save_persistent();
-}
-
-// Indicate Caps Word with the GP12 status pixel only.
-void caps_word_set_user(bool active) {
-    if (active) {
-        xiao_status_service_set(XIAO_STATUS_SLOT_CAPS_WORD, (xiao_rgb_t){0, 80, 100}, false);
-    } else {
-        xiao_status_service_clear(XIAO_STATUS_SLOT_CAPS_WORD);
-    }
-}
-
-// Keep caps word active for letters, digits, and common separators.
-bool caps_word_press_user(uint16_t keycode) {
-    switch (keycode) {
-        case KC_A ... KC_Z:
-            add_weak_mods(MOD_BIT(KC_LSFT));
-            return true;
-        case KC_1 ... KC_0:
-        case KC_BSPC:
-        case KC_DEL:
-            return true;
-        case KC_MINS:
-        case KC_UNDS:
-            add_weak_mods(MOD_BIT(KC_LSFT));
-            return true;
-        default:
-            return false;
-    }
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
