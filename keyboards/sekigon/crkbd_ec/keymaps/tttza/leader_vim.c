@@ -145,6 +145,96 @@ static bool leader_match_sequence(const uint16_t *seq, uint8_t seq_size, uint8_t
     return true;
 }
 
+typedef struct {
+    const uint16_t *pattern;
+    uint8_t         len;
+    bool            allow_digits;
+} leader_pattern_t;
+
+static const uint16_t seq_y[]   = {KC_Y};
+static const uint16_t seq_yy[]  = {KC_Y, KC_Y};
+static const uint16_t seq_yyp[] = {KC_Y, KC_Y, KC_P};
+static const uint16_t seq_p[]   = {KC_P};
+static const uint16_t seq_d[]   = {KC_D};
+static const uint16_t seq_dd[]  = {KC_D, KC_D};
+static const uint16_t seq_g[]   = {KC_G};
+static const uint16_t seq_gg[]  = {KC_G, KC_G};
+static const uint16_t seq_u[]   = {KC_U};
+static const uint16_t seq_r[]   = {KC_R};
+
+static const leader_pattern_t leader_patterns[] = {
+    {seq_y, ARRAY_SIZE(seq_y), true},
+    {seq_yy, ARRAY_SIZE(seq_yy), true},
+    {seq_yyp, ARRAY_SIZE(seq_yyp), true},
+    {seq_p, ARRAY_SIZE(seq_p), true},
+    {seq_d, ARRAY_SIZE(seq_d), true},
+    {seq_dd, ARRAY_SIZE(seq_dd), true},
+    {seq_g, ARRAY_SIZE(seq_g), false},
+    {seq_gg, ARRAY_SIZE(seq_gg), false},
+    {seq_u, ARRAY_SIZE(seq_u), false},
+    {seq_r, ARRAY_SIZE(seq_r), false},
+};
+
+static bool leader_should_end_now(void) {
+    uint16_t seq[ARRAY_SIZE(leader_sequence)] = {0};
+    uint8_t  seq_size                         = leader_compact_sequence(seq);
+
+    if (seq_size == 0) {
+        return false;
+    }
+
+    uint8_t idx = 0;
+    leader_parse_count(seq, seq_size, &idx);
+
+    const uint16_t *tail     = &seq[idx];
+    uint8_t         tail_len = seq_size - idx;
+
+    bool has_prefix = false;
+    bool has_exact  = false;
+    bool has_longer = false;
+
+    for (uint8_t i = 0; i < ARRAY_SIZE(leader_patterns); i++) {
+        const leader_pattern_t *pat = &leader_patterns[i];
+
+        if (!pat->allow_digits && idx > 0) {
+            continue;
+        }
+
+        if (tail_len > pat->len) {
+            continue;
+        }
+
+        bool matches = true;
+        for (uint8_t j = 0; j < tail_len; j++) {
+            if (tail[j] != pat->pattern[j]) {
+                matches = false;
+                break;
+            }
+        }
+
+        if (!matches) {
+            continue;
+        }
+
+        has_prefix = true;
+        if (tail_len == pat->len) {
+            has_exact = true;
+        } else {
+            has_longer = true;
+        }
+    }
+
+    if (!has_prefix) {
+        return true;
+    }
+
+    if (has_exact && !has_longer) {
+        return true;
+    }
+
+    return false;
+}
+
 static void vim_copy_lines(uint16_t count) {
     tap_code16(KC_HOME);
     register_code(KC_LSFT);
@@ -219,18 +309,14 @@ void leader_end_user(void) {
     uint8_t  idx   = 0;
     uint16_t count = leader_parse_count(seq, seq_size, &idx);
 
-    static const uint16_t seq_yy[]  = {KC_Y, KC_Y};
-    static const uint16_t seq_yyp[] = {KC_Y, KC_Y, KC_P};
-    static const uint16_t seq_dd[]  = {KC_D, KC_D};
-
     uint8_t remaining = seq_size - idx;
 
-    if (leader_match_sequence(seq, seq_size, idx, 2, seq_yy)) {
+    if (leader_match_sequence(seq, seq_size, idx, ARRAY_SIZE(seq_yy), seq_yy)) {
         vim_copy_lines(count);
-    } else if (leader_match_sequence(seq, seq_size, idx, 3, seq_yyp)) {
+    } else if (leader_match_sequence(seq, seq_size, idx, ARRAY_SIZE(seq_yyp), seq_yyp)) {
         vim_copy_lines(count);
         vim_paste_block_below(count);
-    } else if (leader_match_sequence(seq, seq_size, idx, 2, seq_dd)) {
+    } else if (leader_match_sequence(seq, seq_size, idx, ARRAY_SIZE(seq_dd), seq_dd)) {
         vim_delete_lines(count);
     } else if (remaining == 1 && seq[idx] == KC_D) {
         vim_delete_lines(count);
@@ -275,5 +361,5 @@ bool leader_add_user(uint16_t keycode) {
         *kc = (digit == 0) ? KC_0 : (KC_1 + (digit - 1));
     }
 
-    return false;
+    return leader_should_end_now();
 }
