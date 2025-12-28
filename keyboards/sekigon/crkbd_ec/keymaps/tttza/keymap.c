@@ -68,6 +68,12 @@ extern rgb_config_t rgb_matrix_config;
 #    include "process_keycode/process_leader.h"
 #endif
 
+static void tap_pair_inner(uint16_t left, uint16_t right) {
+    tap_code16_lang(left);
+    tap_code16_lang(right);
+    tap_code16(KC_LEFT);
+}
+
 #ifdef CONSOLE_ENABLE
 #    include "print.h"
 #endif
@@ -80,11 +86,18 @@ enum layer_number {
 };
 
 // Use USER keycodes so Remap/VIA can display them
+// Keep existing 2–5 assignments; new ones start at USER10 for clarity
 enum custom_keycodes {
-    CK_EnJIS     = QK_USER_2,
-    CK_EnUS      = QK_USER_3,
-    WSEL         = QK_USER_4,
-    CK_HAND_SWAP = QK_USER_5,
+    CK_EnJIS       = QK_USER_2,
+    CK_EnUS        = QK_USER_3,
+    WSEL           = QK_USER_4,
+    CK_HAND_SWAP   = QK_USER_5,
+    CK_PAREN_INNER = QK_USER_10,  // "()"
+    CK_BRKT_INNER  = QK_USER_11,  // "[]"
+    CK_BRCE_INNER  = QK_USER_12,  // "{}"
+    CK_ANG_INNER   = QK_USER_13,  // "<>"
+    CK_SQUO_INNER  = QK_USER_14,  // "''"
+    CK_DQUO_INNER  = QK_USER_15,  // "\"\""
 };
 
 #define LOWER LT(_LOWER, KC_MHEN)
@@ -120,9 +133,9 @@ const uint16_t keymaps[DYNAMIC_KEYMAP_LAYER_COUNT][MATRIX_ROWS][MATRIX_COLS] = {
   //,-----------------------------------------------------.                    ,-----------------------------------------------------.
     KC_TAB, KC_EXLM,   KC_AT, KC_HASH,  KC_DLR, KC_PERC,                      KC_CIRC, KC_AMPR, KC_ASTR, KC_LPRN, KC_RPRN, KC_BSPC,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-    KC_LCTL, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,  KC_PSCR,                      KC_LEFT, KC_DOWN,   KC_UP,KC_RIGHT, KC_HOME,  KC_END,
+    KC_LCTL, XXXXXXX, XXXXXXX, KC_F15, XXXXXXX,  KC_PSCR,                      KC_LEFT, KC_DOWN,   KC_UP,KC_RIGHT, KC_HOME,  KC_END,
   //|--------+--------+--------+--------+--------+--------|                    |--------+--------+--------+--------+--------+--------|
-      KC_LSFT, XXXXXXX, XXXXXXX,  KC_F15, XXXXXXX, QK_LEAD,                      XXXXXXX, XXXXXXX, LALT_T(KC_ENT), WSEL, KC_PGUP, KC_PGDN,
+    KC_LSFT, CK_SQUO_INNER, CK_DQUO_INNER, CK_ANG_INNER, CK_BRKT_INNER, CK_PAREN_INNER,                     XXXXXXX, XXXXXXX, LALT_T(KC_ENT), WSEL, KC_PGUP, KC_PGDN,
   //|--------+--------+--------+--------+--------+--------+--------|  |--------+--------+--------+--------+--------+--------+--------|
                                   KC_LGUI, _______, _______,     KC_ENT, _______, WSEL
                                       //`--------------------------'  `--------------------------'
@@ -167,6 +180,42 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 bool is_left = eeconfig_read_handedness();
                 eeconfig_update_handedness(!is_left);
                 soft_reset_keyboard();
+            }
+            return false;
+        case CK_PAREN_INNER:
+            if (record->event.pressed) {
+                // Inserts "()" and steps inside
+                tap_pair_inner(KC_LPRN, KC_RPRN);
+            }
+            return false;
+        case CK_BRKT_INNER:
+            if (record->event.pressed) {
+                // Inserts "[]" and steps inside
+                tap_pair_inner(KC_LBRC, KC_RBRC);
+            }
+            return false;
+        case CK_BRCE_INNER:
+            if (record->event.pressed) {
+                // Inserts "{}" and steps inside
+                tap_pair_inner(KC_LCBR, KC_RCBR);
+            }
+            return false;
+        case CK_DQUO_INNER:
+            if (record->event.pressed) {
+                // Inserts "\"\"" and steps inside
+                tap_pair_inner(KC_DQT, KC_DQT);
+            }
+            return false;
+        case CK_SQUO_INNER:
+            if (record->event.pressed) {
+                // Inserts "''" and steps inside
+                tap_pair_inner(KC_QUOT, KC_QUOT);
+            }
+            return false;
+        case CK_ANG_INNER:
+            if (record->event.pressed) {
+                // Inserts "<>" and steps inside
+                tap_pair_inner(LSFT(KC_COMMA), LSFT(KC_DOT));
             }
             return false;
         default:
