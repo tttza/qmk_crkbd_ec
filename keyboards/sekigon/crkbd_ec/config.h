@@ -114,6 +114,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    define RGB_DISABLE_WHEN_USB_SUSPENDED
 #    define RGB_MATRIX_FRAMEBUFFER_EFFECTS
 #    define RGB_MATRIX_MAXIMUM_BRIGHTNESS 150
+#    define RGB_MATRIX_TIMEOUT 900000
 #    define RGB_MATRIX_HUE_STEP 8
 #    define RGB_MATRIX_SAT_STEP 8
 #    define RGB_MATRIX_VAL_STEP 8
