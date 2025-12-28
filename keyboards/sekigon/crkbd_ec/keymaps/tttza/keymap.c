@@ -171,6 +171,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
         default:
             if (user_config.jis) {
+                if (leader_is_active()) {
+                    return true;
+                }
                 return twpair_on_jis(keycode, record);
             } else {
                 return true;
