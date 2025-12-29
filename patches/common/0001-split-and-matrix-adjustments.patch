@@ -1,0 +1,70 @@
+diff --git a/quantum/matrix_common.c b/quantum/matrix_common.c
+index 26589f29a6..523469e217 100644
+--- a/quantum/matrix_common.c
++++ b/quantum/matrix_common.c
+@@ -88,11 +88,12 @@ void matrix_print(void) {
+ }
+ 
+ #ifdef SPLIT_KEYBOARD
+-bool matrix_post_scan(void) {
+-    bool changed = false;
++__attribute__((weak)) bool matrix_post_scan(void) {
++    bool         changed                              = false;
++    static bool  last_connected                       = false;
++    matrix_row_t slave_matrix[MATRIX_ROWS_PER_HAND]   = {0};
++
+     if (is_keyboard_master()) {
+-        static bool  last_connected                     = false;
+-        matrix_row_t slave_matrix[MATRIX_ROWS_PER_HAND] = {0};
+         if (transport_master_if_connected(matrix + thisHand, slave_matrix)) {
+             changed = memcmp(matrix + thatHand, slave_matrix, sizeof(slave_matrix)) != 0;
+ 
+diff --git a/quantum/split_common/split_util.c b/quantum/split_common/split_util.c
+index a35a16685a..f7784dbf53 100644
+--- a/quantum/split_common/split_util.c
++++ b/quantum/split_common/split_util.c
+@@ -69,10 +69,12 @@ static bool usb_bus_detected(void) {
+     for (uint16_t i = 0; i < (SPLIT_USB_TIMEOUT / SPLIT_USB_TIMEOUT_POLL); i++) {
+         // This will return true if a USB connection has been established
+         if (usb_connected_state()) {
++            dprintf("usb_detect connected after %u ms\n", i * SPLIT_USB_TIMEOUT_POLL);
+             return true;
+         }
+         wait_ms(SPLIT_USB_TIMEOUT_POLL);
+     }
++    dprintf("usb_detect timeout\n");
+     return false;
+ }
+ #else
+@@ -181,13 +183,21 @@ __attribute__((weak)) bool is_keyboard_left_impl(void) {
+ }
+ 
+ __attribute__((weak)) bool is_keyboard_master_impl(void) {
++#if defined(MASTER_LEFT)
++    // Force the left build to be master, right build will become slave.
++    return true;
++#elif defined(MASTER_RIGHT)
++    return false;
++#else
+     bool is_master = usb_bus_detected();
++    dprintf("is_keyboard_master_impl: %d\n", is_master);
+ 
+     // Avoid NO_USB_STARTUP_CHECK - Disable USB as the previous checks seem to enable it somehow
+     if (!is_master) {
+         usb_disconnect();
+     }
+     return is_master;
++#endif
+ }
+ 
+ __attribute__((weak)) bool is_keyboard_left(void) {
+@@ -203,6 +213,9 @@ void split_pre_init(void) {
+     split_config.master = is_keyboard_master_impl();
+     split_config.left   = is_keyboard_left_impl();
+ 
++    dprintf("split_pre_init master=%d left=%d\n", split_config.master,
++            split_config.left);
++
+     isLeftHand = is_keyboard_left(); // TODO: Remove isLeftHand
+ 
+ #if defined(RGBLIGHT_ENABLE) && defined(RGBLED_SPLIT)
