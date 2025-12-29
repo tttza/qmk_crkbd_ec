@@ -88,12 +88,11 @@ void matrix_print(void) {
 }
 
 #ifdef SPLIT_KEYBOARD
-__attribute__((weak)) bool matrix_post_scan(void) {
-    bool         changed                              = false;
-    static bool  last_connected                       = false;
-    matrix_row_t slave_matrix[MATRIX_ROWS_PER_HAND]   = {0};
-
+bool matrix_post_scan(void) {
+    bool changed = false;
     if (is_keyboard_master()) {
+        static bool  last_connected                     = false;
+        matrix_row_t slave_matrix[MATRIX_ROWS_PER_HAND] = {0};
         if (transport_master_if_connected(matrix + thisHand, slave_matrix)) {
             changed = memcmp(matrix + thatHand, slave_matrix, sizeof(slave_matrix)) != 0;
 

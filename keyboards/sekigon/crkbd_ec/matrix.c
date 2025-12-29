@@ -68,7 +68,7 @@ __attribute__((weak)) bool transport_master_if_connected(
     return true;
 }
 
-bool matrix_post_scan(void) {
+static bool matrix_post_scan_custom(void) {
     bool changed = false;
     if (is_keyboard_master()) {
         static bool  last_connected              = false;
@@ -102,7 +102,7 @@ bool matrix_post_scan(void) {
 uint8_t matrix_scan(void) {
     // Offset raw matrix to this hand to avoid clobbering the other half's rows.
     bool changed = matrix_scan_custom(raw_matrix + thisHand);
-    changed |= matrix_post_scan();
+    changed |= matrix_post_scan_custom();
 
     changed = debounce(raw_matrix + thisHand, matrix + thisHand, changed);
 

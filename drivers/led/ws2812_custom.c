@@ -11,6 +11,10 @@
 #include "hardware/structs/pio.h"
 #include "pico/stdlib.h"
 
+#ifndef LED_TYPE
+#    define LED_TYPE ws2812_led_t
+#endif
+
 #ifndef WS2812_RES
 #    define WS2812_RES (1000 * WS2812_TRST_US)
 #endif
